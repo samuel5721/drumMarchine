@@ -3,21 +3,20 @@ import drum_kick from './assets/sound/drum_kick.wav';
 import drum_snare from './assets/sound/drum_snare.wav';
 import drum_hiHat from './assets/sound/drum_hiHat.wav';
 
+import styles from './App.module.css';
+
 function App() {
   const [audioContext, setAudioContext] = useState(null);
   const [isFetched, setIsFetched] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [bpm, setBpm] = useState(120);
+  const [intervalId, setIntervalId] = useState(null);
+  const noteNum = 16;
   const audioBuffer = useRef({
     kick: null,
     snare: null,
     hiHat: null,
   });
-
-  const keyDrumMap = {
-    c: 'kick',
-    x: 'snare',
-    z: 'hiHat',
-  };
-
   const soundMap = {
     kick: drum_kick,
     snare: drum_snare,
@@ -25,18 +24,15 @@ function App() {
   };
 
   const [score, setScore] = useState({
-    kick: Array.from({length: 16}, () => false),
-    snare: Array.from({length: 16}, () => false),
-    hiHat: Array.from({length: 16}, () => false),
+    kick: Array.from({length: noteNum}, () => false),
+    snare: Array.from({length: noteNum}, () => false),
+    hiHat: Array.from({length: noteNum}, () => false),
   });
 
-  function changeScore(ins, row) {
-    let scoreArr = score;
-    scoreArr[ins][row] = scoreArr[ins][row] ? false : true;
-    setScore(scoreArr);
-  };
-
+  //오디오 초기화
   const initializeAudio = async () => {
+    if(isFetched) return;
+
     let localAudioContext = audioContext;
 
     // Create the AudioContext on user interaction
@@ -59,19 +55,9 @@ function App() {
     setIsFetched(true);
 };
 
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-  }, [audioContext]);
-
-  const handleKeyDown = (event) => {
-    console.log(keyDrumMap[event.key]);
-    playSound(keyDrumMap[event.key]);
-  };
-
   // 사운드가 실질적으로 재생되는 함수
   const playSound = (drumType) => {
     if (audioBuffer.current[drumType] && audioContext) {
-      console.log("played", drumType);
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer.current[drumType];
       source.connect(audioContext.destination);
@@ -79,24 +65,87 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    if (isPlaying) {
+      let currentNote = 0;
+
+      const interval = setInterval(() => {
+        for (const ins in score) {
+            if (score[ins][currentNote]) playSound(ins);
+        }
+
+        currentNote = (currentNote + 1) % noteNum;
+      }, 1000/(bpm/60*4));
+
+      setIntervalId(interval);
+    } else {
+      if (intervalId) clearInterval(intervalId); 
+    }
+
+    return () => { 
+        if (intervalId) clearInterval(intervalId);
+    };
+  }, [isPlaying])
+
+  //해당 악기와 줄에 해당하는 음표 변경
+  const changeScore = (ins, row) => {
+    const updatedScore = { ...score };
+    updatedScore[ins] = [...updatedScore[ins]];
+    updatedScore[ins][row] = !updatedScore[ins][row];
+    setScore(updatedScore);
+  };
+
+  //play 버튼 함수
+  const play = () => {
+    setIsPlaying(true);
+  }
+
+  const stop = () => {
+    setIsPlaying(false);
+  }
+
+  const scoreClear = () => {
+    const newScore = {};
+    for (const instrument in score) {
+        newScore[instrument] = Array.from({ length: noteNum }, () => false);
+    }
+    setScore(newScore);
+    setIsPlaying(false);
+  }
+
   return (
     <div>
       <h1>Press keys to play drums</h1>
-      {
-        (isFetched 
-          ? (
-            <>
-              <button>Play Kick</button>
-              <p>Now play your music!</p>
-            </>
-          )
-          : <button onClick={initializeAudio}>Start Audio</button>
-        )
-      }
-      <div>
-        <button onClick={ () => { changeScore('kick', 0); } }>1</button>
-        <button onClick={ () => { console.log(score); } }>check</button>
+      <button onClick={initializeAudio}>Start Audio</button>
+      <button onClick={play}>Play</button>
+      <button onClick={stop}>stop</button>
+      <button onClick={scoreClear}>clear</button>
+      <div className={styles.lineWrapper}>
+        {
+          ['hiHat', 'snare', 'kick'].map((ins) => {
+            return (
+              <div className={styles.rowWrapper}>
+                {Array.from({ length: noteNum }).map((_, i) => {
+                  return(
+                    <button
+                      className={styles.noteBtn}
+                      style={{ background:(score[ins][i]) ? '#72ac51' : (i%4 === 0) ? '#d6d6d6' : '#ebebeb' }}
+                      onClick={()=>{
+                        if(!isPlaying) {
+                          changeScore(ins, i);
+                          playSound(ins)
+                        }
+                    }}>
+                      {(i%4 === 0 && !score[ins][i]) ? (i+4)/4 : ''}
+                    </button>
+                  )
+                })}
+              </div>
+            );
+          })
+        }
       </div>
+      <button onClick={ () => { console.log(score); } }>check</button>
     </div>
   );
 }
