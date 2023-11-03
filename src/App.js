@@ -113,13 +113,23 @@ function App() {
     setIsPlaying(false);
   }
 
+  const changeBpm = (event) => {
+    setBpm(event.target.value);
+  }
+
   return (
     <div>
       <h1>Press keys to play drums</h1>
-      <button onClick={initializeAudio}>Start Audio</button>
-      <button onClick={play}>Play</button>
-      <button onClick={stop}>stop</button>
-      <button onClick={scoreClear}>clear</button>
+      <div className={styles.optionWrapper}> 
+        <input type='number' value={bpm} onChange={changeBpm}/>
+        <button onClick={initializeAudio}>Start Audio</button>
+        {
+          isPlaying ? <button onClick={stop}>stop</button>
+          :<button onClick={play}>Play</button>
+        }
+        <button onClick={scoreClear}>clear</button>
+      </div>
+      
       <div className={styles.lineWrapper}>
         {
           ['hiHat', 'snare', 'kick'].map((ins) => {
@@ -132,8 +142,8 @@ function App() {
                       style={{ background:(score[ins][i]) ? '#72ac51' : (i%4 === 0) ? '#d6d6d6' : '#ebebeb' }}
                       onClick={()=>{
                         if(!isPlaying) {
+                          if(!score[ins][i]) playSound(ins);
                           changeScore(ins, i);
-                          playSound(ins)
                         }
                     }}>
                       {(i%4 === 0 && !score[ins][i]) ? (i+4)/4 : ''}
