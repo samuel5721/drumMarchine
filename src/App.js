@@ -57,6 +57,7 @@ function App() {
 
   // 사운드가 실질적으로 재생되는 함수
   const playSound = (drumType) => {
+    clearInterval(intervalId);
     if (audioBuffer.current[drumType] && audioContext) {
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer.current[drumType];
@@ -85,7 +86,7 @@ function App() {
     return () => { 
         if (intervalId) clearInterval(intervalId);
     };
-  }, [isPlaying])
+  }, [isPlaying, bpm])
 
   //해당 악기와 줄에 해당하는 음표 변경
   const changeScore = (ins, row) => {
@@ -114,6 +115,12 @@ function App() {
   }
 
   const changeBpm = (event) => {
+    if(event.target.value <= 0) {
+      setBpm(1); return;
+    }
+    if(event.target.value > 1000) {
+      setBpm(999); return;
+    }
     setBpm(event.target.value);
   }
 
@@ -121,7 +128,7 @@ function App() {
     <div>
       <h1>Press keys to play drums</h1>
       <div className={styles.optionWrapper}> 
-        <input type='number' value={bpm} onChange={changeBpm}/>
+        <input type='number' value={bpm} onChange={changeBpm} onClick={(event) => {event.target.select();}}/>
         <button onClick={initializeAudio}>Start Audio</button>
         {
           isPlaying ? <button onClick={stop}>stop</button>
