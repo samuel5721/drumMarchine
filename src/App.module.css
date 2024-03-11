@@ -36,14 +36,24 @@
 }
 
 .lineWrapper {
+  width: 40rem;
   display: flex;
   flex-direction: column;
+  
   gap: 0.5rem;
+}
+
+.insSpan {
+  position: relative;
+  right: 3.5rem;
+  text-align: center;
+  width: 0;
 }
 
 .rowWrapper {
   display: flex;
   flex-direction: row;
+  justify-content: center;
   gap: 0.5rem;
 }
 

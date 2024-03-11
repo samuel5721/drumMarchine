@@ -83,10 +83,10 @@ function App() {
     let noteBuffer = 0;
     let id = setInterval(() => {
       for (const ins in score.current[currentSet.current]) {
-            if (score.current[currentSet.current][ins][noteBuffer]) playSound(ins);
-        }
-        noteBuffer = (noteBuffer + 1) % 16;
-        setCurrentNote(currentNote => noteBuffer);
+        if (score.current[currentSet.current][ins][noteBuffer]) playSound(ins);
+      }
+      noteBuffer = (noteBuffer + 1) % 16;
+      setCurrentNote(currentNote => noteBuffer);
     }, 1000/(bpm.current/60*4));
     
     setIntervalId(id);
@@ -174,17 +174,37 @@ function App() {
         }
         <button className={styles.optionBtn} onClick={scoreClear}>Clear</button>
       </div>
-      
+      <div className={styles.lineWrapper}>
+        <div className={styles.rowWrapper}>
+        <span className={styles.insSpan}>repeat</span>
+          {Array.from({ length: noteNum }).map((_, i) => {
+            return(
+              <button
+                key={i}
+                className={styles.noteBtn}
+                style={{ background:(seeingScore[seeingCurrentSet]['kick'][i]) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white' }}
+                onClick={()=>{
+                  // changeScore(currentSet.current, ins, i);
+              }}>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <br />
       <div className={styles.lineWrapper}>
         {
           ['cowBell', 'hiHat', 'snare', 'kick', ].map((ins) => {
             return (
-              <>
-              <span>{ins}</span>
-              <div className={styles.rowWrapper}>
+              <div
+                key={ins}
+                className={styles.rowWrapper}
+              > 
+                <span className={styles.insSpan}>{ins}</span>
                 {Array.from({ length: noteNum }).map((_, i) => {
                   return(
                     <button
+                      key={i}
                       className={styles.noteBtn}
                       style={{ background:(seeingScore[seeingCurrentSet][ins][i]) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white' }}
                       onClick={()=>{
@@ -193,8 +213,7 @@ function App() {
                     </button>
                   )
                 })}
-              </div>
-              </>
+            </div>
               
             );
           })
@@ -202,20 +221,22 @@ function App() {
         <br />
         {
           <div className={styles.rowWrapper}>
-          {Array.from({ length: noteNum }).map((_, i) => {
-            return(
-              <button
-                className={styles.noteBtn}
-                style={{
-                  background: ((currentNote === i && isPlaying) || seeingCurrentSet === i) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white',
-                  color: ((currentNote === i && isPlaying) || seeingCurrentSet === i) ? 'white' : 'black'
-                }}
-                onClick={()=>{
-                  changeCurrentSet(i); 
-              }}>
-                {i+1}
-              </button>
-            )
+            <span className={styles.insSpan}></span>
+            {Array.from({ length: noteNum }).map((_, i) => {
+              return(
+                <button
+                  key={i}
+                  className={styles.noteBtn}
+                  style={{
+                    background: ((currentNote === i && isPlaying) || seeingCurrentSet === i) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white',
+                    color: ((currentNote === i && isPlaying) || seeingCurrentSet === i) ? 'white' : 'black'
+                  }}
+                  onClick={()=>{
+                    changeCurrentSet(i); 
+                }}>
+                  {i+1}
+                </button>
+              )
           })}
         </div>
         }
