@@ -1,3 +1,6 @@
+# Welcome to Drum marchine!
+드럼 머신에 오신 것을 환영합니다. 개발중입니다!
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
