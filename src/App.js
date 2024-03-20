@@ -17,10 +17,11 @@ function App() {
   const noteNum = 16;
 
   const soundMap = {
-    kick:kick,
-    snare:snare,
-    hiHat:hiHat,
-    cowBell:cowBell
+    'turn':null,
+    'kick':kick,
+    'snare':snare,
+    'hiHat':hiHat,
+    'cowBell':cowBell
   };
   const audioBuffer = useRef(
     Object.keys(soundMap).reduce((acc, key) => ({ ...acc, [key]: null }), {})
@@ -36,6 +37,7 @@ function App() {
   );
   const [seeingScore, setSeeingScore] = useState(score.current);
   const currentSet = useRef(0);
+  const isGoingLeft = useRef(false);
   const [seeingCurrentSet, setSeeingCurrentSet] = useState(currentSet.current );
 
   //오디오 초기화
@@ -53,10 +55,13 @@ function App() {
 
     try {
       for (let s in soundMap) {
-        const response = await fetch(soundMap[s]);
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = await localAudioContext.decodeAudioData(arrayBuffer);
-        audioBuffer.current[s] = buffer;
+        if(s !== 'turn') {
+          const response = await fetch(soundMap[s]);
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = await localAudioContext.decodeAudioData(arrayBuffer);
+          audioBuffer.current[s] = buffer;
+        }
+        
       }
     } catch (e) {
       console.error('Error fetching or decoding audio', e);
@@ -83,9 +88,20 @@ function App() {
     let noteBuffer = 0;
     let id = setInterval(() => {
       for (const ins in score.current[currentSet.current]) {
-        if (score.current[currentSet.current][ins][noteBuffer]) playSound(ins);
+        if (score.current[currentSet.current][ins][noteBuffer]) {
+          if(ins === 'turn') {
+            isGoingLeft.current = !isGoingLeft.current;
+          } else {
+            playSound(ins);
+          }
+        }
       }
-      noteBuffer = (noteBuffer + 1) % 16;
+      if(isGoingLeft.current) {
+        noteBuffer = (noteBuffer + 15) % 16;
+      } else {
+        noteBuffer = (noteBuffer + 1) % 16;
+      }
+      
       setCurrentNote(currentNote => noteBuffer);
     }, 1000/(bpm.current/60*4));
     
@@ -176,15 +192,15 @@ function App() {
       </div>
       <div className={styles.lineWrapper}>
         <div className={styles.rowWrapper}>
-        <span className={styles.insSpan}>repeat</span>
+        <span className={styles.insSpan}>turn</span>
           {Array.from({ length: noteNum }).map((_, i) => {
             return(
               <button
                 key={i}
                 className={styles.noteBtn}
-                style={{ background:(seeingScore[seeingCurrentSet]['kick'][i]) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white' }}
+                style={{ background:(seeingScore[seeingCurrentSet]['turn'][i]) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white' }}
                 onClick={()=>{
-                  // changeScore(currentSet.current, ins, i);
+                  changeScore(currentSet.current, 'turn', i);
               }}>
               </button>
             )
