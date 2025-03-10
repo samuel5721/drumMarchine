@@ -1,270 +1,138 @@
-import React, { useState, useEffect, useRef } from 'react';
-import kick from './assets/sound/drum_kick.wav';
-import snare from './assets/sound/drum_snare.wav';
-import hiHat from './assets/sound/drum_hiHat.wav';
-import cowBell from './assets/sound/drum_cowBell.mp3'
+import React, { useState, useEffect, useRef } from "react";
+import Controls from "./components/Controls";
+import InstrumentRow from "./components/InstrumentRow";
+import SequenceRow from "./components/SequenceRow";
 
-import styles from './App.module.css';
+import useAudioEngine from "./hooks/useAudioEngine";
+import useSequencer from "./hooks/useSequencer";
+
+import { NOTE_NUM, DEFAULT_BPM } from "./utils/constants";
+import { instruments, instrumentOrder } from "./data/instruments";
+import styled from "styled-components";
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const LineWrapper = styled.div`
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
 
 function App() {
-  const [audioContext, setAudioContext] = useState(null);
-  const [isFetched, setIsFetched] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const [currentNote, setCurrentNote] = useState(0);
-  const bpm = useRef(120);
-  const [intervalId, setIntervalId] = useState(null);
-  const noteNum = 16;
-
-  const soundMap = {
-    'turn':null,
-    'kick':kick,
-    'snare':snare,
-    'hiHat':hiHat,
-    'cowBell':cowBell
-  };
-  const audioBuffer = useRef(
-    Object.keys(soundMap).reduce((acc, key) => ({ ...acc, [key]: null }), {})
-  );
-
-  const score = useRef(
-    Array.from({ length: 16 }, () => (
-      Object.keys(soundMap).reduce((acc, key) => ({
-        ...acc,
-        [key]: Array.from({ length: noteNum }, () => false)
-      }), {})
-    ))
-  );
+  const { initializeAudio, playSound, changeVolume, volume } = useAudioEngine();
+  const initialScore = Array.from({ length: NOTE_NUM }, () => {
+    const instrumentScore = {};
+    Object.keys(instruments).forEach((ins) => {
+      instrumentScore[ins] = Array(NOTE_NUM).fill(false);
+    });
+    return instrumentScore;
+  });
+  const score = useRef(initialScore);
   const [seeingScore, setSeeingScore] = useState(score.current);
   const currentSet = useRef(0);
-  const isGoingLeft = useRef(false);
-  const [seeingCurrentSet, setSeeingCurrentSet] = useState(currentSet.current );
+  const [seeingCurrentSet, setSeeingCurrentSet] = useState(0);
 
-  //오디오 초기화
-  const initializeAudio = async () => {
-    if(isFetched) return;
+  const { isPlaying, currentNote, startSequencer, stopSequencer, changeBpm } =
+    useSequencer({ score, currentSet, playSound, instruments });
 
-    let localAudioContext = audioContext;
+  const [bpmInput, setBpmInput] = useState(DEFAULT_BPM);
+  const [isMouseDown, setIsMouseDown] = useState(false);
 
-    // Create the AudioContext on user interaction
-    if (!localAudioContext) {
-      localAudioContext = new AudioContext();
-      setAudioContext(localAudioContext);
-      await localAudioContext.resume();
-    }
+  useEffect(() => {
+    const handleMouseDown = () => setIsMouseDown(true);
+    const handleMouseUp = () => setIsMouseDown(false);
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
-    try {
-      for (let s in soundMap) {
-        if(s !== 'turn') {
-          const response = await fetch(soundMap[s]);
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = await localAudioContext.decodeAudioData(arrayBuffer);
-          audioBuffer.current[s] = buffer;
-        }
-        
-      }
-    } catch (e) {
-      console.error('Error fetching or decoding audio', e);
-    }
-    setIsFetched(true);
-};
+  const toggleNote = (instrument, index) => {
+    const updatedScoreSet = { ...score.current[currentSet.current] };
+    updatedScoreSet[instrument] = updatedScoreSet[instrument].map((val, i) =>
+      i === index ? !val : val
+    );
+    score.current[currentSet.current] = updatedScoreSet;
+    setSeeingScore([...score.current]);
+  };
 
-  // 사운드가 실질적으로 재생되는 함수
-  const playSound = (drumType) => {
-    clearInterval(intervalId);
-    if (audioBuffer.current[drumType] && audioContext) {
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer.current[drumType];
-      source.connect(audioContext.destination);
-      source.start();
+  const clearScore = () => {
+    const clearedSet = {};
+    Object.keys(score.current[currentSet.current]).forEach((ins) => {
+      clearedSet[ins] = Array(NOTE_NUM).fill(false);
+    });
+    score.current[currentSet.current] = clearedSet;
+    setSeeingScore([...score.current]);
+  };
+
+  const handleBpmChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    if (!isNaN(value)) {
+      setBpmInput(value);
+      changeBpm(value);
     }
   };
 
   useEffect(() => {
-    clearInterval(intervalId);
-
-    if(!isPlaying) return;
-
-    let noteBuffer = 0;
-    let id = setInterval(() => {
-      for (const ins in score.current[currentSet.current]) {
-        if (score.current[currentSet.current][ins][noteBuffer]) {
-          if(ins === 'turn') {
-            isGoingLeft.current = !isGoingLeft.current;
-          } else {
-            playSound(ins);
-          }
-        }
+    const handleKeyDown = (e) => {
+      if (e.key >= "1" && e.key <= "9") {
+        currentSet.current = parseInt(e.key, 10) - 1;
+        setSeeingCurrentSet(currentSet.current);
       }
-      if(isGoingLeft.current) {
-        noteBuffer = (noteBuffer + 15) % 16;
-      } else {
-        noteBuffer = (noteBuffer + 1) % 16;
+      if (e.key === "0") {
+        currentSet.current = 9;
+        setSeeingCurrentSet(9);
       }
-      
-      setCurrentNote(currentNote => noteBuffer);
-    }, 1000/(bpm.current/60*4));
-    
-    setIntervalId(id);
-
-    return () => {
-      clearInterval(id);
-      setCurrentNote(0);
-    }
-
-  }, [isPlaying])
-
-
-  //해당 악기와 줄에 해당하는 음표 변경
-  const changeScore = (set, ins, row) => {
-    const updatedScore = score.current.map((scoreSet, index) => {
-      if (index === set) {
-        return {
-          ...scoreSet,
-          [ins]: scoreSet[ins].map((val, rowIndex) => rowIndex === row ? !val : val),
-        };
-      } else {
-        return scoreSet;
-      }
-    });
-  
-    score.current = updatedScore;
-    setSeeingScore([...updatedScore]);
-  };
-
-  //악보 변경
-  const changeCurrentSet = (set) => {
-    currentSet.current = set;
-    setSeeingCurrentSet(currentSet.current);
-  }
-
-  //play 버튼 함수
-  const play = () => {
-    setIsPlaying(true);
-  }
-
-  const stop = () => {
-    setIsPlaying(false);
-    clearInterval(intervalId);
-  }
-
-  const scoreClear = () => {
-    // score.current 전체를 복사합니다.
-    const newScore = score.current.map((scoreSet, index) => {
-        if (index === currentSet.current) {
-            const clearedSet = {};
-            for (const instrument in scoreSet) {
-                clearedSet[instrument] = Array.from({ length: noteNum }, () => false);
-            }
-            return clearedSet;
-        } else {
-            return scoreSet;
-        }
-    });
-
-    score.current = newScore;
-    setSeeingScore([...newScore]);
-}
-
-
-  const changeBpm = (event) => {
-    if(event.target.value <= 0) {
-      bpm.current = 1; return;
-    }
-    if(event.target.value > 1000) {
-      bpm.current = 999; return;
-    }
-    bpm.current = event.target.value;
-  }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
-    <div className={styles.wrapper}>
-      <h1>Press keys to play drums</h1>
-      <div className={styles.optionWrapper}> 
-        <input className={styles.optionInput} type='number' value={bpm.current} onChange={changeBpm} onClick={(event) => {event.target.select();}}/>
-        <button className={styles.optionBtn} onClick={initializeAudio}>Start</button>
-        {
-          isPlaying ?
-          <button className={styles.optionBtn} onClick={stop}>Stop</button> :
-          <button className={styles.optionBtn} onClick={play}>Play</button>
-        }
-        <button className={styles.optionBtn} onClick={scoreClear}>Clear</button>
-      </div>
-      <div className={styles.lineWrapper}>
-        <div className={styles.rowWrapper}>
-        <span className={styles.insSpan}>turn</span>
-          {Array.from({ length: noteNum }).map((_, i) => {
-            return(
-              <button
-                key={i}
-                className={styles.noteBtn}
-                style={{ background:(seeingScore[seeingCurrentSet]['turn'][i]) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white' }}
-                onClick={()=>{
-                  changeScore(currentSet.current, 'turn', i);
-              }}>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-      <br />
-      <div className={styles.lineWrapper}>
-        {
-          ['cowBell', 'hiHat', 'snare', 'kick', ].map((ins) => {
-            return (
-              <div
-                key={ins}
-                className={styles.rowWrapper}
-              > 
-                <span className={styles.insSpan}>{ins}</span>
-                {Array.from({ length: noteNum }).map((_, i) => {
-                  return(
-                    <button
-                      key={i}
-                      className={styles.noteBtn}
-                      style={{ background:(seeingScore[seeingCurrentSet][ins][i]) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white' }}
-                      onClick={()=>{
-                        changeScore(currentSet.current, ins, i);
-                    }}>
-                    </button>
-                  )
-                })}
-            </div>
-              
-            );
-          })
-        }
+    <Wrapper>
+      <h1>Music Lab</h1>
+      <Controls
+        bpmInput={bpmInput}
+        handleBpmChange={handleBpmChange}
+        volume={volume.current}
+        changeVolume={changeVolume}
+        initializeAudio={initializeAudio}
+        isPlaying={isPlaying}
+        start={startSequencer}
+        stop={stopSequencer}
+        clearScore={clearScore}
+      />
+      <LineWrapper>
+        {instrumentOrder.map((ins) => (
+          <InstrumentRow
+            key={ins}
+            instrumentName={ins}
+            rowScore={seeingScore[seeingCurrentSet][ins]}
+            onToggleNote={toggleNote}
+          />
+        ))}
         <br />
-        {
-          <div className={styles.rowWrapper}>
-            <span className={styles.insSpan}></span>
-            {Array.from({ length: noteNum }).map((_, i) => {
-              return(
-                <button
-                  key={i}
-                  className={styles.noteBtn}
-                  style={{
-                    background: ((currentNote === i && isPlaying) || seeingCurrentSet === i) ? 'black' : (i%4 === 0) ? '#eeeeee' : 'white',
-                    color: ((currentNote === i && isPlaying) || seeingCurrentSet === i) ? 'white' : 'black'
-                  }}
-                  onClick={()=>{
-                    changeCurrentSet(i); 
-                }}>
-                  {i+1}
-                </button>
-              )
-          })}
-        </div>
-        }
-      </div>
-      <button onClick={ () => { console.log(score.current); } }>check</button>
-    </div>
+        <SequenceRow
+          sequanceName={"drum"}
+          seeingCurrentSet={seeingCurrentSet}
+          currentNote={currentNote}
+          isPlaying={isPlaying}
+          setSeeingCurrentSet={setSeeingCurrentSet}
+          score={score}
+          currentSet={currentSet}
+        />
+      </LineWrapper>
+    </Wrapper>
   );
 }
 
 export default App;
-
-
-
-
-
