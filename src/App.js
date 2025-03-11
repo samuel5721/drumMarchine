@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Controls from "./components/Controls";
 import InstrumentRow from "./components/InstrumentRow";
 import SequenceRow from "./components/SequenceRow";
-
 import useAudioEngine from "./hooks/useAudioEngine";
 import useSequencer from "./hooks/useSequencer";
-
 import { NOTE_NUM, DEFAULT_BPM } from "./utils/constants";
 import { instruments, instrumentOrder } from "./data/instruments";
 import styled from "styled-components";
@@ -27,6 +25,8 @@ const LineWrapper = styled.div`
 
 function App() {
   const { initializeAudio, playSound, changeVolume, volume } = useAudioEngine();
+
+  // 세트(혹은 노트 수)만큼 점수 관리
   const initialScore = Array.from({ length: NOTE_NUM }, () => {
     const instrumentScore = {};
     Object.keys(instruments).forEach((ins) => {
@@ -36,18 +36,24 @@ function App() {
   });
   const score = useRef(initialScore);
   const [seeingScore, setSeeingScore] = useState(score.current);
+
+  // 현재 세트 관리
   const currentSet = useRef(0);
   const [seeingCurrentSet, setSeeingCurrentSet] = useState(0);
 
+  // 시퀀서 훅
   const { isPlaying, currentNote, startSequencer, stopSequencer, changeBpm } =
     useSequencer({ score, currentSet, playSound, instruments });
 
+  // BPM
   const [bpmInput, setBpmInput] = useState(DEFAULT_BPM);
-  const [isMouseDown, setIsMouseDown] = useState(false);
 
+  // 마우스 드래그 상태
+  const [isMouseDown, setIsMouseDown] = useState(false);
   useEffect(() => {
     const handleMouseDown = () => setIsMouseDown(true);
     const handleMouseUp = () => setIsMouseDown(false);
+
     document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("mouseup", handleMouseUp);
     return () => {
@@ -56,6 +62,7 @@ function App() {
     };
   }, []);
 
+  // 노트 토글
   const toggleNote = (instrument, index) => {
     const updatedScoreSet = { ...score.current[currentSet.current] };
     updatedScoreSet[instrument] = updatedScoreSet[instrument].map((val, i) =>
@@ -65,6 +72,7 @@ function App() {
     setSeeingScore([...score.current]);
   };
 
+  // 세트 클리어
   const clearScore = () => {
     const clearedSet = {};
     Object.keys(score.current[currentSet.current]).forEach((ins) => {
@@ -74,6 +82,7 @@ function App() {
     setSeeingScore([...score.current]);
   };
 
+  // BPM 변경
   const handleBpmChange = (e) => {
     const value = parseInt(e.target.value, 10);
     if (!isNaN(value)) {
@@ -82,6 +91,7 @@ function App() {
     }
   };
 
+  // 키보드 이벤트
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key >= "1" && e.key <= "9") {
@@ -118,6 +128,7 @@ function App() {
             instrumentName={ins}
             rowScore={seeingScore[seeingCurrentSet][ins]}
             onToggleNote={toggleNote}
+            isMouseDown={isMouseDown} // 추가: 드래그 기능에 필요
           />
         ))}
         <br />

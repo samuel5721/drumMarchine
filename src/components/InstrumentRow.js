@@ -1,7 +1,12 @@
 import React from "react";
 import * as Styled from "../style/Row.styled";
 
-const InstrumentRow = ({ instrumentName, rowScore = [], onToggleNote }) => {
+const InstrumentRow = ({
+  instrumentName,
+  rowScore = [],
+  onToggleNote,
+  isMouseDown,
+}) => {
   return (
     <Styled.RowWrapper>
       <Styled.InsSpan>{instrumentName}</Styled.InsSpan>
@@ -17,6 +22,9 @@ const InstrumentRow = ({ instrumentName, rowScore = [], onToggleNote }) => {
                 : "white",
             }}
             onClick={() => onToggleNote(instrumentName, i)}
+            onMouseEnter={() => {
+              if (isMouseDown) onToggleNote(instrumentName, i);
+            }}
           ></Styled.NoteBtn>
         ))}
       </Styled.NoteBtnWrapper>
