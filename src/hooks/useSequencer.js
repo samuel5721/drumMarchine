@@ -1,70 +1,68 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { NOTE_NUM } from "../utils/constants";
 
 export default function useSequencer({ score, currentSet, playSound }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentNote, setCurrentNote] = useState(0);
   const bpm = useRef(120);
-  const intervalId = useRef(null);
+  const timerId = useRef(null);
   const isGoingLeft = useRef(false);
 
-  useEffect(() => {
-    // 인터벌은 isPlaying 상태가 변경될 때만 생성되도록 합니다.
-    if (!isPlaying) return;
-    // 이전 인터벌이 있다면 지우기
-    if (intervalId.current) clearInterval(intervalId.current);
+  /** setInterval로 하니까 딜레이가 개심해서 절대 시간 기준으로 바꿨음 */
+  const scheduleSequencer = useCallback(() => {
+    let startTime = Date.now();
+    let tickCount = 0;
+    // 1박자 간격
+    const stepDuration = 1000 / ((bpm.current / 60) * 4);
 
-    let noteIndex = 0;
-    const interval = setInterval(() => {
+    const tick = () => {
+      // 기대 시각
+      const expectedTime = startTime + tickCount * stepDuration;
+      // 실제 시간 - 기대 시간 = 드리프트
+      const drift = Date.now() - expectedTime;
+
       const currentScore = score.current[currentSet.current];
-      // 현재 세트의 모든 악기를 순회합니다.
+      // 현재 세트의 모든 악기에 대해 노트가 활성화되어 있다면 소리 재생
       for (const ins in currentScore) {
-        if (currentScore[ins][noteIndex]) {
+        if (currentScore[ins][tickCount % NOTE_NUM]) {
           playSound(ins);
         }
       }
-      noteIndex = isGoingLeft.current
-        ? (noteIndex + NOTE_NUM - 1) % NOTE_NUM
-        : (noteIndex + 1) % NOTE_NUM;
-      setCurrentNote(noteIndex);
-    }, 1000 / ((bpm.current / 60) * 4));
+      setCurrentNote(tickCount % NOTE_NUM);
+      tickCount++;
 
-    intervalId.current = interval;
+      // 드리프트
+      timerId.current = setTimeout(tick, Math.max(0, stepDuration - drift));
+    };
+    tick();
+  }, [score, currentSet, playSound]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      scheduleSequencer();
+    }
     return () => {
-      clearInterval(interval);
+      if (timerId.current) clearTimeout(timerId.current);
       setCurrentNote(0);
     };
-  }, [isPlaying]); // 의존성 배열을 isPlaying만 사용 (다른 값들은 ref로 관리)
+  }, [isPlaying, scheduleSequencer]);
 
   const startSequencer = () => setIsPlaying(true);
+
   const stopSequencer = () => {
     setIsPlaying(false);
-    if (intervalId.current) clearInterval(intervalId.current);
+    if (timerId.current) clearTimeout(timerId.current);
   };
 
   const changeBpm = (newBpm) => {
     bpm.current = newBpm;
     if (isPlaying) {
-      // BPM 변경 시 재시작: 기존 인터벌을 지우고 다시 시작
-      if (intervalId.current) clearInterval(intervalId.current);
-      let noteIndex = currentNote;
-      const interval = setInterval(() => {
-        const currentScore = score.current[currentSet.current];
-        for (const ins in currentScore) {
-          if (currentScore[ins][noteIndex]) {
-            if (ins === "turn") {
-              isGoingLeft.current = !isGoingLeft.current;
-            } else {
-              playSound(ins);
-            }
-          }
-        }
-        noteIndex = isGoingLeft.current
-          ? (noteIndex + NOTE_NUM - 1) % NOTE_NUM
-          : (noteIndex + 1) % NOTE_NUM;
-        setCurrentNote(noteIndex);
-      }, 1000 / ((bpm.current / 60) * 4));
-      intervalId.current = interval;
+      // BPM 변경 -> 기존 타이머 취소 -> stepDuration 재계산
+      if (timerId.current) clearTimeout(timerId.current);
+      setIsPlaying(false);
+      setTimeout(() => {
+        setIsPlaying(true);
+      }, 0);
     }
   };
 
