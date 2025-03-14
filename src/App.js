@@ -1,37 +1,33 @@
 import React, { useState, useEffect, useRef } from "react";
+import MainControls from "./components/MainControls";
 import Controls from "./components/Controls";
 import InstrumentRow from "./components/InstrumentRow";
 import SequenceRow from "./components/SequenceRow";
 import useAudioEngine from "./hooks/useAudioEngine";
 import useSequencer from "./hooks/useSequencer";
 import { NOTE_NUM, DEFAULT_BPM } from "./utils/constants";
-import { instruments, instrumentOrder } from "./data/instruments";
+import {
+  instruments,
+  instrumentDrumOrder,
+  instrumentBassOrder,
+} from "./data/instruments";
 import styled from "styled-components";
-
-const Wrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const LineWrapper = styled.div`
-  width: 100%;
-  max-width: 40rem;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
 
 function App() {
   const { initializeAudio, playSound, changeVolume, volume } = useAudioEngine();
 
   // 세트(혹은 노트 수)만큼 점수 관리
-  const initialScore = Array.from({ length: NOTE_NUM }, () => {
+  const initialScore = Array.from({ length: 10 }, () => {
     const instrumentScore = {};
-    Object.keys(instruments).forEach((ins) => {
-      instrumentScore[ins] = Array(NOTE_NUM).fill(false);
+    // 드럼
+    instrumentDrumOrder.forEach((ins) => {
+      instrumentScore[ins] = Array(NOTE_NUM).fill(0);
     });
+    // 베이스
+    instrumentBassOrder.forEach((ins) => {
+      instrumentScore[ins] = Array(NOTE_NUM).fill(0);
+    });
+
     return instrumentScore;
   });
   const score = useRef(initialScore);
@@ -49,10 +45,10 @@ function App() {
   const [bpmInput, setBpmInput] = useState(DEFAULT_BPM);
 
   // 마우스 드래그 상태
-  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(0);
   useEffect(() => {
-    const handleMouseDown = () => setIsMouseDown(true);
-    const handleMouseUp = () => setIsMouseDown(false);
+    const handleMouseDown = () => setIsMouseDown(1);
+    const handleMouseUp = () => setIsMouseDown(0);
 
     document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("mouseup", handleMouseUp);
@@ -76,7 +72,7 @@ function App() {
   const clearScore = () => {
     const clearedSet = {};
     Object.keys(score.current[currentSet.current]).forEach((ins) => {
-      clearedSet[ins] = Array(NOTE_NUM).fill(false);
+      clearedSet[ins] = Array(NOTE_NUM).fill(0);
     });
     score.current[currentSet.current] = clearedSet;
     setSeeingScore([...score.current]);
@@ -109,41 +105,132 @@ function App() {
 
   return (
     <Wrapper>
-      <h1>Music Lab</h1>
-      <Controls
-        bpmInput={bpmInput}
-        handleBpmChange={handleBpmChange}
-        volume={volume.current}
-        changeVolume={changeVolume}
-        initializeAudio={initializeAudio}
-        isPlaying={isPlaying}
-        start={startSequencer}
-        stop={stopSequencer}
-        clearScore={clearScore}
-      />
-      <LineWrapper>
-        {instrumentOrder.map((ins) => (
-          <InstrumentRow
-            key={ins}
-            instrumentName={ins}
-            rowScore={seeingScore[seeingCurrentSet][ins]}
-            onToggleNote={toggleNote}
-            isMouseDown={isMouseDown} // 추가: 드래그 기능에 필요
-          />
-        ))}
-        <br />
-        <SequenceRow
-          sequanceName={"drum"}
-          seeingCurrentSet={seeingCurrentSet}
-          currentNote={currentNote}
+      <HeaderBox>
+        <h1>Music Lab</h1>
+        <MainControls
+          bpmInput={bpmInput}
+          handleBpmChange={handleBpmChange}
+          volume={volume.current}
+          changeVolume={changeVolume}
+          initializeAudio={initializeAudio}
           isPlaying={isPlaying}
-          setSeeingCurrentSet={setSeeingCurrentSet}
-          score={score}
-          currentSet={currentSet}
+          start={startSequencer}
+          stop={stopSequencer}
+          clearScore={clearScore}
         />
-      </LineWrapper>
+      </HeaderBox>
+      <BodyBox>
+        <LeftSide>
+          <LineWrapper>
+            <Controls
+              bpmInput={bpmInput}
+              handleBpmChange={handleBpmChange}
+              volume={volume.current}
+              changeVolume={changeVolume}
+              initializeAudio={initializeAudio}
+              isPlaying={isPlaying}
+              start={startSequencer}
+              stop={stopSequencer}
+              clearScore={clearScore}
+            />
+            {instrumentDrumOrder.map((ins) => (
+              <InstrumentRow
+                key={ins}
+                instrumentName={ins}
+                rowScore={seeingScore[seeingCurrentSet][ins]}
+                onToggleNote={toggleNote}
+                isMouseDown={isMouseDown}
+              />
+            ))}
+            <br />
+            <SequenceRow
+              sequanceName={"drum"}
+              seeingCurrentSet={seeingCurrentSet}
+              currentNote={currentNote}
+              isPlaying={isPlaying}
+              setSeeingCurrentSet={setSeeingCurrentSet}
+              score={score}
+              currentSet={currentSet}
+            />
+          </LineWrapper>
+        </LeftSide>
+        <RightSide>
+          <LineWrapper>
+            <Controls
+              bpmInput={bpmInput}
+              handleBpmChange={handleBpmChange}
+              volume={volume.current}
+              changeVolume={changeVolume}
+              initializeAudio={initializeAudio}
+              isPlaying={isPlaying}
+              start={startSequencer}
+              stop={stopSequencer}
+              clearScore={clearScore}
+            />
+            {instrumentBassOrder.map((ins) => (
+              <InstrumentRow
+                key={ins}
+                instrumentName={ins}
+                rowScore={seeingScore[seeingCurrentSet][ins]}
+                onToggleNote={toggleNote}
+                isMouseDown={isMouseDown}
+              />
+            ))}
+            <br />
+            <SequenceRow
+              sequanceName={"drum"}
+              seeingCurrentSet={seeingCurrentSet}
+              currentNote={currentNote}
+              isPlaying={isPlaying}
+              setSeeingCurrentSet={setSeeingCurrentSet}
+              score={score}
+              currentSet={currentSet}
+            />
+          </LineWrapper>
+        </RightSide>
+      </BodyBox>
     </Wrapper>
   );
 }
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const HeaderBox = styled.div`
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const BodyBox = styled.div`
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+`;
+
+const LeftSide = styled.div`
+  width: 50%;
+  // background-color: lightblue;
+`;
+
+const RightSide = styled.div`
+  width: 50%;
+  // background-color: lightgreen;
+`;
+
+const LineWrapper = styled.div`
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
 
 export default App;

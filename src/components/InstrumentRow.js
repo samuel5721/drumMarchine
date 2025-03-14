@@ -7,8 +7,14 @@ const InstrumentRow = ({
   onToggleNote,
   isMouseDown,
 }) => {
+  // const isSharp = instrumentName.includes("#");
+
   return (
-    <Styled.RowWrapper>
+    <Styled.RowWrapper
+      style={{
+        // background: isSharp ? "#eeeeee" : "white",
+      }}
+    >
       <Styled.InsSpan>{instrumentName}</Styled.InsSpan>
       <Styled.NoteBtnWrapper>
         {rowScore.map((isActive, i) => (

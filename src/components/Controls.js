@@ -3,10 +3,12 @@ import React from "react";
 import styled from "styled-components";
 
 const OptionWrapper = styled.div`
+  padding-left: 3.5rem;
+  height: 1.5rem;
   display: flex;
   flex-direction: row;
   gap: 0.5rem;
-  margin: 1rem 0;
+  margin: 0.5rem 0;
 `;
 
 const OptionInput = styled.input`
@@ -40,13 +42,6 @@ const Controls = ({
   return (
     <OptionWrapper>
       <OptionInput
-        type="number"
-        value={bpmInput}
-        onChange={handleBpmChange}
-        onBlur={handleBpmChange}
-        onClick={(e) => e.target.select()}
-      />
-      <OptionInput
         type="range"
         min="0"
         max="1"
@@ -54,12 +49,6 @@ const Controls = ({
         value={volume}
         onChange={(e) => changeVolume(parseFloat(e.target.value))}
       />
-      <OptionBtn onClick={initializeAudio}>Start</OptionBtn>
-      {isPlaying ? (
-        <OptionBtn onClick={stop}>Stop</OptionBtn>
-      ) : (
-        <OptionBtn onClick={start}>Play</OptionBtn>
-      )}
       <OptionBtn onClick={clearScore}>Clear</OptionBtn>
     </OptionWrapper>
   );

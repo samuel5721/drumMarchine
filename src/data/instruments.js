@@ -10,4 +10,15 @@ export const instruments = {
   cowBell,
 };
 
-export const instrumentOrder = ["cowBell", "hiHat", "snare", "kick"];
+export const instrumentDrumOrder = ["cowBell", "hiHat", "snare", "kick"];
+
+//bass 순서 반대로
+export const instrumentBassOrder = [
+  "bass_B",
+  "bass_A",
+  "bass_G",
+  "bass_F",
+  "bass_E",
+  "bass_D",
+  "bass_C",
+];

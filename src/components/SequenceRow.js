@@ -1,5 +1,6 @@
 import React from "react";
 import * as Styled from "../style/Row.styled";
+import { NOTE_NUM } from "../utils/constants";
 
 const SequenceRow = ({
   sequanceName,
@@ -13,8 +14,9 @@ const SequenceRow = ({
   return (
     <Styled.RowWrapper>
       <Styled.InsSpan />
-      {Array.from({ length: score.current.length }).map((_, i) => (
+      {Array.from({ length: NOTE_NUM }).map((_, i) => (
         <Styled.NoteBtn
+          isSharp={false}
           key={i}
           style={{
             background:
