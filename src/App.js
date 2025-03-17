@@ -18,7 +18,7 @@ function App() {
   const { initializeAudio, playSound, changeVolume, volume } = useAudioEngine();
 
   // 세트(혹은 노트 수)만큼 점수 관리
-  const initialScore = Array.from({ length: 10 }, () => {
+  const initialScore = Array.from({ length: NOTE_NUM }, () => {
     const instrumentScore = {};
     // 드럼
     instrumentDrumOrder.forEach((ins) => {
