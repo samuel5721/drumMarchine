@@ -7,6 +7,7 @@ import useAudioEngine from "./hooks/useAudioEngine";
 import useSequencer from "./hooks/useSequencer";
 import { NOTE_NUM, DEFAULT_BPM } from "./utils/constants";
 import {
+  instrumentTypes,
   instruments,
   instrumentDrumOrder,
   instrumentBassOrder,
@@ -144,7 +145,7 @@ function App() {
             ))}
             <br />
             <SequenceRow
-              sequanceName={"drum"}
+              sequanceName={instrumentTypes.DRUM}
               seeingCurrentSet={seeingCurrentSet}
               currentNote={currentNote}
               isPlaying={isPlaying}
@@ -178,7 +179,7 @@ function App() {
             ))}
             <br />
             <SequenceRow
-              sequanceName={"drum"}
+              sequanceName={instrumentTypes.BASS}
               seeingCurrentSet={seeingCurrentSet}
               currentNote={currentNote}
               isPlaying={isPlaying}

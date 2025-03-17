@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { instrumentTypes } from "../data/instruments";
 import { NOTE_NUM } from "../utils/constants";
 
 export default function useSequencer({ score, currentSet, playSound }) {
@@ -6,7 +7,6 @@ export default function useSequencer({ score, currentSet, playSound }) {
   const [currentNote, setCurrentNote] = useState(0);
   const bpm = useRef(120);
   const timerId = useRef(null);
-  const isGoingLeft = useRef(false);
 
   const scheduleSequencer = useCallback(() => {
     const startTime = performance.now();
@@ -23,7 +23,7 @@ export default function useSequencer({ score, currentSet, playSound }) {
       for (const ins in currentScore) {
         if (currentScore[ins][tickCount % NOTE_NUM]) {
           // bass 케이스면 BPM 정보 전달
-          if (ins.startsWith("bass")) {
+          if (ins.startsWith(instrumentTypes.BASS)) {
             playSound(ins, { currentBpm: bpm.current });
           } else {
             playSound(ins);
