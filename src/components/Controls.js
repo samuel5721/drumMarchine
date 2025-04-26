@@ -38,6 +38,7 @@ const Controls = ({
   start,
   stop,
   clearScore,
+  instrumentType,
 }) => {
   return (
     <OptionWrapper>
@@ -47,7 +48,7 @@ const Controls = ({
         max="1"
         step="0.01"
         value={volume}
-        onChange={(e) => changeVolume(parseFloat(e.target.value))}
+        onChange={(e) => changeVolume(instrumentType, parseFloat(e.target.value))}
       />
       <OptionBtn onClick={clearScore}>Clear</OptionBtn>
     </OptionWrapper>

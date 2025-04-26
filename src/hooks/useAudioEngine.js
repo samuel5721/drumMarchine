@@ -5,8 +5,13 @@ import { frequencyMap } from "../data/scale";
 export default function useAudioEngine() {
   const [audioContext, setAudioContext] = useState(null);
   const [isFetched, setIsFetched] = useState(false);
-  const gainNode = useRef(null);
-  const volume = useRef(0.5);
+  const gainNodes = useRef({});
+  const masterGainNode = useRef(null);
+  const volumes = useRef({
+    [instrumentTypes.DRUM]: 0.5,
+    [instrumentTypes.BASS]: 0.5,
+    master: 0.5
+  });
   const audioBuffer = useRef(
     Object.keys(instruments).reduce((acc, key) => ({ ...acc, [key]: null }), {})
   );
@@ -17,7 +22,19 @@ export default function useAudioEngine() {
     if (!localAudioContext) {
       localAudioContext = new AudioContext();
       setAudioContext(localAudioContext);
-      gainNode.current = localAudioContext.createGain();
+      
+      // 마스터 GainNode 생성
+      masterGainNode.current = localAudioContext.createGain();
+      masterGainNode.current.connect(localAudioContext.destination);
+      masterGainNode.current.gain.value = volumes.current.master;
+      
+      // Drum과 Bass 세트별로 GainNode 생성
+      Object.values(instrumentTypes).forEach(type => {
+        gainNodes.current[type] = localAudioContext.createGain();
+        gainNodes.current[type].connect(masterGainNode.current);
+        gainNodes.current[type].gain.value = volumes.current[type] * 2;
+      });
+      
       await localAudioContext.resume();
     }
     try {
@@ -35,47 +52,41 @@ export default function useAudioEngine() {
     setIsFetched(true);
   };
 
-  // playSound 함수 수정: 옵션 객체를 받아서, bass 케이스에서 currentBpm 사용
   const playSound = useCallback(
     (instrumentName, options = {}) => {
       if (audioContext) {
         if (instruments[instrumentName]) {
-          // 기존 사운드 재생 로직
           const source = audioContext.createBufferSource();
           source.buffer = audioBuffer.current[instrumentName];
-          source.connect(gainNode.current).connect(audioContext.destination);
-          gainNode.current.gain.value = volume.current * 1.5;
+          source.connect(gainNodes.current[instrumentTypes.DRUM]);
           source.start();
         } else {
-          // bass 케이스: instrumentName 예: "bass_C", "bass_C#" 등
           const [type, note] = instrumentName.split("_");
           switch (type) {
             case instrumentTypes.BASS:
               const freq = frequencyMap[note] || 65.41;
               const osc = audioContext.createOscillator();
-              const gain = audioContext.createGain(); // 개별 GainNode 생성
+              const gain = audioContext.createGain();
 
               osc.type = "sine";
               osc.frequency.value = freq;
-              osc.connect(gain).connect(audioContext.destination);
+              osc.connect(gain).connect(gainNodes.current[instrumentTypes.BASS]);
 
-              // 볼륨 설정
-              gain.gain.value = volume.current * 1.5;
+              // 볼륨 값을 0.0001 이상으로 제한
+              const volumeValue = Math.max(volumes.current[instrumentTypes.BASS] * 4, 0.0001);
+              gain.gain.value = volumeValue;
 
               osc.start();
 
-              // BPM 기반 sustain time (0.5 beat)
               const currentBpm = options.currentBpm || 120;
               const sustainTime = 0.5 * (60 / currentBpm);
 
-              // 부드러운 페이드아웃 적용
               gain.gain.setTargetAtTime(
                 0,
                 audioContext.currentTime + sustainTime - 0.05,
                 0.01
               );
 
-              // 충분히 감쇠된 후 정지
               osc.stop(audioContext.currentTime + sustainTime);
               break;
 
@@ -88,10 +99,20 @@ export default function useAudioEngine() {
     [audioContext]
   );
 
-  const changeVolume = (newVolume) => {
-    volume.current = newVolume;
-    if (gainNode.current) {
-      gainNode.current.gain.value = volume.current;
+  const changeVolume = (instrumentType, newVolume) => {
+    // 볼륨 값을 0.0001 이상으로 제한
+    const safeVolume = Math.max(newVolume, 0.0001);
+    
+    if (instrumentType === 'master') {
+      volumes.current.master = safeVolume;
+      if (masterGainNode.current) {
+        masterGainNode.current.gain.value = safeVolume;
+      }
+    } else {
+      volumes.current[instrumentType] = safeVolume;
+      if (gainNodes.current[instrumentType]) {
+        gainNodes.current[instrumentType].gain.value = safeVolume * 2;
+      }
     }
   };
 
@@ -99,8 +120,6 @@ export default function useAudioEngine() {
     initializeAudio,
     playSound,
     changeVolume,
-    audioContext,
-    isFetched,
-    volume,
+    volumes: volumes.current,
   };
 }

@@ -15,7 +15,7 @@ import {
 import styled from "styled-components";
 
 function App() {
-  const { initializeAudio, playSound, changeVolume, volume } = useAudioEngine();
+  const { initializeAudio, playSound, changeVolume, volumes } = useAudioEngine();
 
   // 세트(혹은 노트 수)만큼 점수 관리
   const initialScore = Array.from({ length: NOTE_NUM }, () => {
@@ -111,13 +111,14 @@ function App() {
         <MainControls
           bpmInput={bpmInput}
           handleBpmChange={handleBpmChange}
-          volume={volume.current}
+          volume={volumes.master}
           changeVolume={changeVolume}
           initializeAudio={initializeAudio}
           isPlaying={isPlaying}
           start={startSequencer}
           stop={stopSequencer}
           clearScore={clearScore}
+          instrumentType="master"
         />
       </HeaderBox>
       <BodyBox>
@@ -126,13 +127,14 @@ function App() {
             <Controls
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
-              volume={volume.current}
+              volume={volumes[instrumentTypes.DRUM]}
               changeVolume={changeVolume}
               initializeAudio={initializeAudio}
               isPlaying={isPlaying}
               start={startSequencer}
               stop={stopSequencer}
               clearScore={clearScore}
+              instrumentType={instrumentTypes.DRUM}
             />
             {instrumentDrumOrder.map((ins) => (
               <InstrumentRow
@@ -160,13 +162,14 @@ function App() {
             <Controls
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
-              volume={volume.current}
+              volume={volumes[instrumentTypes.BASS]}
               changeVolume={changeVolume}
               initializeAudio={initializeAudio}
               isPlaying={isPlaying}
               start={startSequencer}
               stop={stopSequencer}
               clearScore={clearScore}
+              instrumentType={instrumentTypes.BASS}
             />
             {instrumentBassOrder.map((ins) => (
               <InstrumentRow

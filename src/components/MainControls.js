@@ -1,4 +1,4 @@
-// src/components/Controls.js
+// src/components/MainControls.js
 import React from "react";
 import styled from "styled-components";
 
@@ -35,7 +35,7 @@ const OptionBtn = styled.button`
   border-radius: 0.25rem;
 `;
 
-const Controls = ({
+const MainControls = ({
   bpmInput,
   handleBpmChange,
   volume,
@@ -45,6 +45,7 @@ const Controls = ({
   start,
   stop,
   clearScore,
+  instrumentType,
 }) => {
   return (
     <OptionWrapper>
@@ -62,7 +63,7 @@ const Controls = ({
           max="1"
           step="0.01"
           value={volume}
-          onChange={(e) => changeVolume(parseFloat(e.target.value))}
+          onChange={(e) => changeVolume(instrumentType, parseFloat(e.target.value))}
         />
         <OptionBtn onClick={initializeAudio}>Start</OptionBtn>
         {isPlaying ? (
@@ -80,4 +81,4 @@ const Controls = ({
   );
 };
 
-export default Controls;
+export default MainControls;
