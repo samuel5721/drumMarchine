@@ -63,6 +63,7 @@ export default function useAudioEngine() {
         } else {
           const [type, note] = instrumentName.split("_");
           switch (type) {
+            // base는 오실레이터로 구현함
             case instrumentTypes.BASS:
               const freq = frequencyMap[note] || 65.41;
               const osc = audioContext.createOscillator();

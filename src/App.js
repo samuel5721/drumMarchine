@@ -16,27 +16,37 @@ import styled from "styled-components";
 
 function App() {
   const { initializeAudio, playSound, changeVolume, volumes } = useAudioEngine();
+  const [focusedInstrumentType, setFocusedInstrumentType] = useState(null);
 
-  // 세트(혹은 노트 수)만큼 점수 관리
-  const initialScore = Array.from({ length: NOTE_NUM }, () => {
-    const instrumentScore = {};
-    // 드럼
-    instrumentDrumOrder.forEach((ins) => {
-      instrumentScore[ins] = Array(NOTE_NUM).fill(0);
-    });
-    // 베이스
-    instrumentBassOrder.forEach((ins) => {
-      instrumentScore[ins] = Array(NOTE_NUM).fill(0);
-    });
-
-    return instrumentScore;
-  });
+  // 각 악기 세트별로 점수 관리
+  const initialScore = {
+    [instrumentTypes.DRUM]: Array.from({ length: NOTE_NUM }, () => {
+      const instrumentScore = {};
+      instrumentDrumOrder.forEach((ins) => {
+        instrumentScore[ins] = Array(NOTE_NUM).fill(0);
+      });
+      return instrumentScore;
+    }),
+    [instrumentTypes.BASS]: Array.from({ length: NOTE_NUM }, () => {
+      const instrumentScore = {};
+      instrumentBassOrder.forEach((ins) => {
+        instrumentScore[ins] = Array(NOTE_NUM).fill(0);
+      });
+      return instrumentScore;
+    })
+  };
   const score = useRef(initialScore);
-  const [seeingScore, setSeeingScore] = useState(score.current);
+  const [seeingScore, setSeeingScore] = useState(initialScore);
 
-  // 현재 세트 관리
-  const currentSet = useRef(0);
-  const [seeingCurrentSet, setSeeingCurrentSet] = useState(0);
+  // 각 악기 세트별 현재 세트 관리
+  const currentSet = useRef({
+    [instrumentTypes.DRUM]: 0,
+    [instrumentTypes.BASS]: 0
+  });
+  const [seeingCurrentSet, setSeeingCurrentSet] = useState({
+    [instrumentTypes.DRUM]: 0,
+    [instrumentTypes.BASS]: 0
+  });
 
   // 시퀀서 훅
   const { isPlaying, currentNote, startSequencer, stopSequencer, changeBpm } =
@@ -61,22 +71,25 @@ function App() {
 
   // 노트 토글
   const toggleNote = (instrument, index) => {
-    const updatedScoreSet = { ...score.current[currentSet.current] };
+    const instrumentType = instrumentDrumOrder.includes(instrument) ? instrumentTypes.DRUM : instrumentTypes.BASS;
+    const updatedScoreSet = { ...score.current[instrumentType][currentSet.current[instrumentType]] };
     updatedScoreSet[instrument] = updatedScoreSet[instrument].map((val, i) =>
       i === index ? !val : val
     );
-    score.current[currentSet.current] = updatedScoreSet;
-    setSeeingScore([...score.current]);
+    score.current[instrumentType][currentSet.current[instrumentType]] = updatedScoreSet;
+    setSeeingScore({ ...score.current });
   };
 
   // 세트 클리어
   const clearScore = () => {
-    const clearedSet = {};
-    Object.keys(score.current[currentSet.current]).forEach((ins) => {
-      clearedSet[ins] = Array(NOTE_NUM).fill(0);
-    });
-    score.current[currentSet.current] = clearedSet;
-    setSeeingScore([...score.current]);
+    if (focusedInstrumentType) {
+      const clearedSet = {};
+      Object.keys(score.current[focusedInstrumentType][currentSet.current[focusedInstrumentType]]).forEach((ins) => {
+        clearedSet[ins] = Array(NOTE_NUM).fill(0);
+      });
+      score.current[focusedInstrumentType][currentSet.current[focusedInstrumentType]] = clearedSet;
+      setSeeingScore({ ...score.current });
+    }
   };
 
   // BPM 변경
@@ -91,18 +104,50 @@ function App() {
   // 키보드 이벤트
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key >= "1" && e.key <= "9") {
-        currentSet.current = parseInt(e.key, 10) - 1;
-        setSeeingCurrentSet(currentSet.current);
+      // 포커스 설정
+      if (e.key === 'q') {
+        setFocusedInstrumentType(instrumentTypes.DRUM);
+      } else if (e.key === 'w') {
+        setFocusedInstrumentType(instrumentTypes.BASS);
       }
-      if (e.key === "0") {
-        currentSet.current = 9;
-        setSeeingCurrentSet(9);
+      
+      // Ctrl + 숫자키로 전체 악보 변경
+      if (e.ctrlKey) {
+        if (e.key >= "1" && e.key <= "9") {
+          e.preventDefault(); // 브라우저 기본 동작 방지
+          const newSet = parseInt(e.key, 10) - 1;
+          Object.values(instrumentTypes).forEach(type => {
+            currentSet.current[type] = newSet;
+          });
+          setSeeingCurrentSet({ ...currentSet.current });
+          setFocusedInstrumentType(null); // 포커스 해제
+        }
+        if (e.key === "0") {
+          e.preventDefault(); // 브라우저 기본 동작 방지
+          Object.values(instrumentTypes).forEach(type => {
+            currentSet.current[type] = 9;
+          });
+          setSeeingCurrentSet({ ...currentSet.current });
+          setFocusedInstrumentType(null); // 포커스 해제
+        }
+      }
+      // 포커스된 악기 세트의 악보 변경
+      else if (focusedInstrumentType) {
+        if (e.key >= "1" && e.key <= "9") {
+          e.preventDefault(); // 브라우저 기본 동작 방지
+          currentSet.current[focusedInstrumentType] = parseInt(e.key, 10) - 1;
+          setSeeingCurrentSet({ ...currentSet.current });
+        }
+        if (e.key === "0") {
+          e.preventDefault(); // 브라우저 기본 동작 방지
+          currentSet.current[focusedInstrumentType] = 9;
+          setSeeingCurrentSet({ ...currentSet.current });
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [focusedInstrumentType]);
 
   return (
     <Wrapper>
@@ -123,7 +168,10 @@ function App() {
       </HeaderBox>
       <BodyBox>
         <LeftSide>
-          <LineWrapper>
+          <LineWrapper 
+            onClick={() => setFocusedInstrumentType(instrumentTypes.DRUM)}
+            style={{ border: focusedInstrumentType === instrumentTypes.DRUM ? '1px solid #ccc' : 'none' }}
+          >
             <Controls
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
@@ -140,7 +188,7 @@ function App() {
               <InstrumentRow
                 key={ins}
                 instrumentName={ins}
-                rowScore={seeingScore[seeingCurrentSet][ins]}
+                rowScore={seeingScore[instrumentTypes.DRUM][seeingCurrentSet[instrumentTypes.DRUM]][ins]}
                 onToggleNote={toggleNote}
                 isMouseDown={isMouseDown}
               />
@@ -148,17 +196,23 @@ function App() {
             <br />
             <SequenceRow
               sequanceName={instrumentTypes.DRUM}
-              seeingCurrentSet={seeingCurrentSet}
+              seeingCurrentSet={seeingCurrentSet[instrumentTypes.DRUM]}
               currentNote={currentNote}
               isPlaying={isPlaying}
-              setSeeingCurrentSet={setSeeingCurrentSet}
-              score={score}
-              currentSet={currentSet}
+              setSeeingCurrentSet={(newSet) => {
+                currentSet.current[instrumentTypes.DRUM] = newSet;
+                setSeeingCurrentSet({ ...currentSet.current });
+              }}
+              score={score.current[instrumentTypes.DRUM]}
+              currentSet={currentSet.current[instrumentTypes.DRUM]}
             />
           </LineWrapper>
         </LeftSide>
         <RightSide>
-          <LineWrapper>
+          <LineWrapper 
+            onClick={() => setFocusedInstrumentType(instrumentTypes.BASS)}
+            style={{ border: focusedInstrumentType === instrumentTypes.BASS ? '1px solid #ccc' : 'none' }}
+          >
             <Controls
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
@@ -175,7 +229,7 @@ function App() {
               <InstrumentRow
                 key={ins}
                 instrumentName={ins}
-                rowScore={seeingScore[seeingCurrentSet][ins]}
+                rowScore={seeingScore[instrumentTypes.BASS][seeingCurrentSet[instrumentTypes.BASS]][ins]}
                 onToggleNote={toggleNote}
                 isMouseDown={isMouseDown}
               />
@@ -183,12 +237,15 @@ function App() {
             <br />
             <SequenceRow
               sequanceName={instrumentTypes.BASS}
-              seeingCurrentSet={seeingCurrentSet}
+              seeingCurrentSet={seeingCurrentSet[instrumentTypes.BASS]}
               currentNote={currentNote}
               isPlaying={isPlaying}
-              setSeeingCurrentSet={setSeeingCurrentSet}
-              score={score}
-              currentSet={currentSet}
+              setSeeingCurrentSet={(newSet) => {
+                currentSet.current[instrumentTypes.BASS] = newSet;
+                setSeeingCurrentSet({ ...currentSet.current });
+              }}
+              score={score.current[instrumentTypes.BASS]}
+              currentSet={currentSet.current[instrumentTypes.BASS]}
             />
           </LineWrapper>
         </RightSide>
@@ -235,6 +292,10 @@ const LineWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: border 0.2s ease;
+  cursor: pointer;
 `;
 
 export default App;

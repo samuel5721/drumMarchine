@@ -31,7 +31,6 @@ const SequenceRow = ({
                 : "black",
           }}
           onClick={() => {
-            currentSet.current = i;
             setSeeingCurrentSet(i);
           }}
         >
