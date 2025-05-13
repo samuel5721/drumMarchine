@@ -18,19 +18,22 @@ function App() {
   const { initializeAudio, playSound, changeVolume, volumes } = useAudioEngine();
   const [focusedInstrumentType, setFocusedInstrumentType] = useState(null);
 
-  // 각 악기 세트별로 점수 관리
+  // 각 악기 세트별로 노트 관리
   const initialScore = {
     [instrumentTypes.DRUM]: Array.from({ length: NOTE_NUM }, () => {
       const instrumentScore = {};
       instrumentDrumOrder.forEach((ins) => {
-        instrumentScore[ins] = Array(NOTE_NUM).fill(0);
+        instrumentScore[ins] = Array(NOTE_NUM).fill(false);
       });
       return instrumentScore;
     }),
     [instrumentTypes.BASS]: Array.from({ length: NOTE_NUM }, () => {
       const instrumentScore = {};
       instrumentBassOrder.forEach((ins) => {
-        instrumentScore[ins] = Array(NOTE_NUM).fill(0);
+        instrumentScore[ins] = Array(NOTE_NUM).fill({
+          on: false,
+          isSharp: false
+        });
       });
       return instrumentScore;
     })
@@ -73,9 +76,19 @@ function App() {
   const toggleNote = (instrument, index) => {
     const instrumentType = instrumentDrumOrder.includes(instrument) ? instrumentTypes.DRUM : instrumentTypes.BASS;
     const updatedScoreSet = { ...score.current[instrumentType][currentSet.current[instrumentType]] };
-    updatedScoreSet[instrument] = updatedScoreSet[instrument].map((val, i) =>
-      i === index ? !val : val
-    );
+    
+    if (instrumentType === instrumentTypes.DRUM) {
+      // 드럼 기존 로직 유지
+      updatedScoreSet[instrument] = updatedScoreSet[instrument].map((val, i) =>
+        i === index ? !val : val
+      );
+    } else {
+      // 베이스 객체로 처리
+      updatedScoreSet[instrument] = updatedScoreSet[instrument].map((note, i) =>
+        i === index ? { ...note, on: !note.on } : note
+      );
+    }
+    
     score.current[instrumentType][currentSet.current[instrumentType]] = updatedScoreSet;
     setSeeingScore({ ...score.current });
   };

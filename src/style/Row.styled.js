@@ -5,7 +5,7 @@ export const RowWrapper = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
 `;
 
 export const InsSpan = styled.span`
@@ -20,7 +20,7 @@ export const NoteBtnWrapper = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
 `;
 
 export const NoteBtn = styled.button`

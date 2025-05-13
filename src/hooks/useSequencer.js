@@ -21,12 +21,13 @@ export default function useSequencer({ score, currentSet, playSound }) {
       Object.values(instrumentTypes).forEach(type => {
         const currentScore = score.current[type][currentSet.current[type]];
         for (const ins in currentScore) {
-          if (currentScore[ins][tickCount % NOTE_NUM]) {
-            if (ins.startsWith(instrumentTypes.BASS)) {
-              playSound(ins, { currentBpm: bpm.current });
-            } else {
-              playSound(ins);
-            }
+          const note = currentScore[ins][tickCount % NOTE_NUM];
+          if (type === instrumentTypes.DRUM && note) {
+            playSound(ins);
+          } else if (type === instrumentTypes.BASS && note.on) {
+            playSound(ins, { 
+              currentBpm: bpm.current
+            });
           }
         }
       });
