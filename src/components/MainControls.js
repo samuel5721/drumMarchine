@@ -31,7 +31,8 @@ const OptionBtn = styled.button`
   padding: 0.2rem;
   background-color: white;
   color: black;
-  border: 1px solid black;
+  border: none;
+  box-shadow: inset 0 0 0 1px #222;
   border-radius: 0.25rem;
 `;
 

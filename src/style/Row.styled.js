@@ -23,11 +23,40 @@ export const NoteBtnWrapper = styled.div`
   gap: 0.3rem;
 `;
 
+export const NoteGroup = styled.span`
+  display: flex;
+  background: black;
+  border-radius: 6px;
+  gap: 0.3rem;
+`;
+
 export const NoteBtn = styled.button`
   width: 1.5rem;
   height: 1.5rem;
-  border: 1px solid black;
+  border: none;
+  box-shadow: inset 0 0 0 1px #222;
   border-radius: 0.1rem;
   user-select: none;
   font-size: 12px;
+  background: ${props => {
+    if (props.$isInDragRange) return "#90caf9";
+    if (props.$isOn) return "black";
+    if (props.$isActive) return "black";
+    if (props.$isCurrent || props.$isSelected) return "black";
+    if (props.$isBeat) return "#eeeeee";
+    return "white";
+  }};
+  color: ${props => {
+    if (props.$isOn) return "white";
+    if (props.$isCurrent || props.$isSelected) return "white";
+    return "black";
+  }};
 `;
+
+export const LineWrapper = styled.div`
+  padding: 1rem;
+  border: ${props => props.isFocused ? '1px solid #ccc' : 'none'};
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+`;
+

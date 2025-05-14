@@ -24,10 +24,27 @@ export default function useSequencer({ score, currentSet, playSound }) {
           const note = currentScore[ins][tickCount % NOTE_NUM];
           if (type === instrumentTypes.DRUM && note) {
             playSound(ins);
-          } else if (type === instrumentTypes.BASS && note.on) {
-            playSound(ins, { 
-              currentBpm: bpm.current
-            });
+          } else if (type === instrumentTypes.BASS && note.on && note.groupId !== 0) {
+            // 연속된 groupId의 첫 인덱스에서만 playSound 호출
+            const prevIdx = (tickCount - 1 + NOTE_NUM) % NOTE_NUM;
+            const prevNote = currentScore[ins][prevIdx];
+            if (!prevNote.on || prevNote.groupId !== note.groupId) {
+              // sustainStep 계산 (현재 인덱스부터 groupId가 같은 구간의 길이)
+              let sustainStep = 1;
+              for (let j = 1; j < NOTE_NUM; j++) {
+                const nextIdx = (tickCount + j) % NOTE_NUM;
+                const nextNote = currentScore[ins][nextIdx];
+                if (nextNote.on && nextNote.groupId === note.groupId) {
+                  sustainStep++;
+            } else {
+                  break;
+                }
+              }
+              playSound(ins, { 
+                currentBpm: bpm.current,
+                sustainStep
+              });
+            }
           }
         }
       });

@@ -18,18 +18,9 @@ const SequenceRow = ({
         <Styled.NoteBtn
           isSharp={false}
           key={i}
-          style={{
-            background:
-              (currentNote === i && isPlaying) || seeingCurrentSet === i
-                ? "black"
-                : i % 4 === 0
-                ? "#eeeeee"
-                : "white",
-            color:
-              (currentNote === i && isPlaying) || seeingCurrentSet === i
-                ? "white"
-                : "black",
-          }}
+          $isCurrent={currentNote === i && isPlaying}
+          $isSelected={seeingCurrentSet === i}
+          $isBeat={i % 4 === 0}
           onClick={() => {
             setSeeingCurrentSet(i);
           }}

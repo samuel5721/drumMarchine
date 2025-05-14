@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import MainControls from "./components/MainControls";
 import Controls from "./components/Controls";
-import InstrumentRow from "./components/InstrumentRow";
 import SequenceRow from "./components/SequenceRow";
 import useAudioEngine from "./hooks/useAudioEngine";
 import useSequencer from "./hooks/useSequencer";
@@ -13,6 +12,8 @@ import {
   instrumentBassOrder,
 } from "./data/instruments";
 import styled from "styled-components";
+import SimpleInstrumentRow from "./components/SimpleInstrumentRow";
+import BaseInstrumentRow from "./components/BaseInstrumentRow";
 
 function App() {
   const { initializeAudio, playSound, changeVolume, volumes } = useAudioEngine();
@@ -32,7 +33,8 @@ function App() {
       instrumentBassOrder.forEach((ins) => {
         instrumentScore[ins] = Array(NOTE_NUM).fill({
           on: false,
-          isSharp: false
+          isSharp: false,
+          groupId: 0
         });
       });
       return instrumentScore;
@@ -72,6 +74,16 @@ function App() {
     };
   }, []);
 
+  // groupId를 위한 카운터
+  const groupIdRef = useRef(1);
+
+  // 드래그 상태 관리 (베이스 음 길이 지정용)
+  const [dragInfo, setDragInfo] = useState({
+    instrument: null,
+    startIdx: null,
+    isDragging: false
+  });
+
   // 노트 토글
   const toggleNote = (instrument, index) => {
     const instrumentType = instrumentDrumOrder.includes(instrument) ? instrumentTypes.DRUM : instrumentTypes.BASS;
@@ -79,14 +91,24 @@ function App() {
     
     if (instrumentType === instrumentTypes.DRUM) {
       // 드럼 기존 로직 유지
-      updatedScoreSet[instrument] = updatedScoreSet[instrument].map((val, i) =>
-        i === index ? !val : val
-      );
+    updatedScoreSet[instrument] = updatedScoreSet[instrument].map((val, i) =>
+      i === index ? !val : val
+    );
     } else {
-      // 베이스 객체로 처리
-      updatedScoreSet[instrument] = updatedScoreSet[instrument].map((note, i) =>
-        i === index ? { ...note, on: !note.on } : note
-      );
+      // 베이스: groupId 방식 적용
+      const row = updatedScoreSet[instrument];
+      const clicked = row[index];
+      if (!clicked.on) {
+        // 새로운 음 시작: 새로운 groupId 할당
+        const newGroupId = groupIdRef.current++;
+        row[index] = { ...clicked, on: true, groupId: newGroupId };
+      } else {
+        // 이미 켜진 음 클릭: 해당 groupId 전체 off
+        const offGroupId = clicked.groupId;
+        updatedScoreSet[instrument] = row.map(note =>
+          note.groupId === offGroupId ? { ...note, on: false, groupId: 0 } : note
+        );
+      }
     }
     
     score.current[instrumentType][currentSet.current[instrumentType]] = updatedScoreSet;
@@ -112,6 +134,31 @@ function App() {
       setBpmInput(value);
       changeBpm(value);
     }
+  };
+
+  // 베이스 음 구간 지정 함수
+  const setBassNoteRange = (instrument, startIdx, endIdx, removeGroupId = null) => {
+    const instrumentType = instrumentTypes.BASS;
+    const updatedScoreSet = { ...score.current[instrumentType][currentSet.current[instrumentType]] };
+    const row = updatedScoreSet[instrument];
+    if (removeGroupId) {
+      // 해당 groupId 전체 해제
+      updatedScoreSet[instrument] = row.map(note =>
+        note.groupId === removeGroupId ? { ...note, on: false, groupId: 0 } : note
+      );
+    } else {
+      // 새로운 groupId 할당
+      const newGroupId = groupIdRef.current++;
+      const minIdx = Math.min(startIdx, endIdx);
+      const maxIdx = Math.max(startIdx, endIdx);
+      updatedScoreSet[instrument] = row.map((note, i) =>
+        (i >= minIdx && i <= maxIdx)
+          ? { ...note, on: true, groupId: newGroupId }
+          : note
+      );
+    }
+    score.current[instrumentType][currentSet.current[instrumentType]] = updatedScoreSet;
+    setSeeingScore({ ...score.current });
   };
 
   // 키보드 이벤트
@@ -183,7 +230,7 @@ function App() {
         <LeftSide>
           <LineWrapper 
             onClick={() => setFocusedInstrumentType(instrumentTypes.DRUM)}
-            style={{ border: focusedInstrumentType === instrumentTypes.DRUM ? '1px solid #ccc' : 'none' }}
+            isFocused={focusedInstrumentType === instrumentTypes.DRUM}
           >
             <Controls
               bpmInput={bpmInput}
@@ -198,7 +245,7 @@ function App() {
               instrumentType={instrumentTypes.DRUM}
             />
             {instrumentDrumOrder.map((ins) => (
-              <InstrumentRow
+              <SimpleInstrumentRow
                 key={ins}
                 instrumentName={ins}
                 rowScore={seeingScore[instrumentTypes.DRUM][seeingCurrentSet[instrumentTypes.DRUM]][ins]}
@@ -224,7 +271,7 @@ function App() {
         <RightSide>
           <LineWrapper 
             onClick={() => setFocusedInstrumentType(instrumentTypes.BASS)}
-            style={{ border: focusedInstrumentType === instrumentTypes.BASS ? '1px solid #ccc' : 'none' }}
+            isFocused={focusedInstrumentType === instrumentTypes.BASS}
           >
             <Controls
               bpmInput={bpmInput}
@@ -239,12 +286,13 @@ function App() {
               instrumentType={instrumentTypes.BASS}
             />
             {instrumentBassOrder.map((ins) => (
-              <InstrumentRow
+              <BaseInstrumentRow
                 key={ins}
                 instrumentName={ins}
                 rowScore={seeingScore[instrumentTypes.BASS][seeingCurrentSet[instrumentTypes.BASS]][ins]}
-                onToggleNote={toggleNote}
-                isMouseDown={isMouseDown}
+                dragInfo={dragInfo}
+                setDragInfo={setDragInfo}
+                setNoteRange={setBassNoteRange}
               />
             ))}
             <br />
@@ -309,6 +357,8 @@ const LineWrapper = styled.div`
   border-radius: 4px;
   transition: border 0.2s ease;
   cursor: pointer;
+  border: none;
+  box-shadow: ${props => props.isFocused ? 'inset 0 0 0 1px #888' : 'none'};
 `;
 
 export default App;

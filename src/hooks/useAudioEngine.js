@@ -80,7 +80,11 @@ export default function useAudioEngine() {
               osc.start();
 
               const currentBpm = options.currentBpm || 120;
-              const sustainTime = 0.5 * (60 / currentBpm);
+              // sustainStep이 있으면 그만큼 지속, 없으면 기본값
+              const sustainStep = options.sustainStep || 1;
+              // 한 스텝의 시간(16분음표 기준)
+              const stepTime = (60 / currentBpm) / 4;
+              const sustainTime = sustainStep * stepTime;
 
               gain.gain.setTargetAtTime(
                 0,
