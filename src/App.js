@@ -84,6 +84,41 @@ function App() {
     isDragging: false
   });
 
+  // 악보 내보내기
+  const exportScore = () => {
+    const scoreData = {
+      score: score.current,
+      bpm: bpmInput,
+      volumes: volumes.current
+    };
+    const blob = new Blob([JSON.stringify(scoreData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'drumset_score.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // 악보 가져오기
+  const importScore = (scoreData) => {
+    if (scoreData.score) {
+      score.current = scoreData.score;
+      setSeeingScore({ ...score.current });
+    }
+    if (scoreData.bpm) {
+      setBpmInput(scoreData.bpm);
+      changeBpm(scoreData.bpm);
+    }
+    if (scoreData.volumes) {
+      Object.entries(scoreData.volumes).forEach(([type, volume]) => {
+        changeVolume(type, volume);
+      });
+    }
+  };
+
   // 노트 토글
   const toggleNote = (instrument, index) => {
     const instrumentType = instrumentDrumOrder.includes(instrument) ? instrumentTypes.DRUM : instrumentTypes.BASS;
@@ -169,12 +204,14 @@ function App() {
         setFocusedInstrumentType(instrumentTypes.DRUM);
       } else if (e.key === 'w') {
         setFocusedInstrumentType(instrumentTypes.BASS);
+      } else if (e.key === 'Escape') {
+        setFocusedInstrumentType(null);
       }
       
       // Ctrl + 숫자키로 전체 악보 변경
       if (e.ctrlKey) {
         if (e.key >= "1" && e.key <= "9") {
-          e.preventDefault(); // 브라우저 기본 동작 방지
+          e.preventDefault();
           const newSet = parseInt(e.key, 10) - 1;
           Object.values(instrumentTypes).forEach(type => {
             currentSet.current[type] = newSet;
@@ -183,7 +220,7 @@ function App() {
           setFocusedInstrumentType(null); // 포커스 해제
         }
         if (e.key === "0") {
-          e.preventDefault(); // 브라우저 기본 동작 방지
+          e.preventDefault();
           Object.values(instrumentTypes).forEach(type => {
             currentSet.current[type] = 9;
           });
@@ -191,15 +228,16 @@ function App() {
           setFocusedInstrumentType(null); // 포커스 해제
         }
       }
+      
       // 포커스된 악기 세트의 악보 변경
       else if (focusedInstrumentType) {
         if (e.key >= "1" && e.key <= "9") {
-          e.preventDefault(); // 브라우저 기본 동작 방지
+          e.preventDefault();
           currentSet.current[focusedInstrumentType] = parseInt(e.key, 10) - 1;
           setSeeingCurrentSet({ ...currentSet.current });
         }
         if (e.key === "0") {
-          e.preventDefault(); // 브라우저 기본 동작 방지
+          e.preventDefault();
           currentSet.current[focusedInstrumentType] = 9;
           setSeeingCurrentSet({ ...currentSet.current });
         }
@@ -224,6 +262,8 @@ function App() {
           stop={stopSequencer}
           clearScore={clearScore}
           instrumentType="master"
+          exportScore={exportScore}
+          importScore={importScore}
         />
       </HeaderBox>
       <BodyBox>

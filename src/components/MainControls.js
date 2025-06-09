@@ -36,6 +36,10 @@ const OptionBtn = styled.button`
   border-radius: 0.25rem;
 `;
 
+const FileInput = styled.input`
+  display: none;
+`;
+
 const MainControls = ({
   bpmInput,
   handleBpmChange,
@@ -47,7 +51,32 @@ const MainControls = ({
   stop,
   clearScore,
   instrumentType,
+  exportScore,
+  importScore,
 }) => {
+  const fileInputRef = React.useRef(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const scoreData = JSON.parse(event.target.result);
+          importScore(scoreData);
+        } catch (error) {
+          console.error('Error importing score:', error);
+          alert('잘못된 파일 형식입니다.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   return (
     <OptionWrapper>
       <Box>
@@ -75,8 +104,14 @@ const MainControls = ({
         <OptionBtn onClick={clearScore}>All Clear</OptionBtn>
       </Box>
       <Box>
-        <OptionBtn onClick={clearScore}>Export</OptionBtn>
-        <OptionBtn onClick={clearScore}>Import</OptionBtn>
+        <OptionBtn onClick={exportScore}>Export</OptionBtn>
+        <OptionBtn onClick={handleImportClick}>Import</OptionBtn>
+        <FileInput
+          type="file"
+          accept=".json"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+        />
       </Box>
     </OptionWrapper>
   );

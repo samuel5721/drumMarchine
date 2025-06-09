@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import * as Styled from "../style/Row.styled";
 
 const BaseInstrumentRow = ({
@@ -8,9 +8,35 @@ const BaseInstrumentRow = ({
   setDragInfo = () => {},
   setNoteRange = () => {}
 }) => {
+  const [isAltPressed, setIsAltPressed] = useState(false);
+
+  // Alt
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Alt') setIsAltPressed(true);
+    };
+    const handleKeyUp = (e) => {
+      if (e.key === 'Alt') setIsAltPressed(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   // 드래그 관련 이벤트 핸들러
   const handleMouseDown = (i) => {
-    setDragInfo({ instrument: instrumentName, startIdx: i, isDragging: true, startOn: rowScore[i].on, startGroupId: rowScore[i].groupId });
+    setDragInfo({ 
+      instrument: instrumentName, 
+      startIdx: i, 
+      isDragging: true, 
+      startOn: rowScore[i].on, 
+      startGroupId: rowScore[i].groupId,
+      isAltPressed 
+    });
   };
   const handleMouseEnter = (i) => {
     if (dragInfo.isDragging && dragInfo.instrument === instrumentName) {
@@ -23,7 +49,7 @@ const BaseInstrumentRow = ({
       if (dragInfo.startOn && dragInfo.startGroupId) {
         setNoteRange(instrumentName, null, null, dragInfo.startGroupId); // 해제용
       } else {
-        setNoteRange(instrumentName, dragInfo.startIdx, i);
+        setNoteRange(instrumentName, dragInfo.startIdx, i, null, dragInfo.isAltPressed);
       }
     }
   };
