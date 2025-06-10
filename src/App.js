@@ -10,6 +10,7 @@ import {
   instruments,
   instrumentDrumOrder,
   instrumentBassOrder,
+  instrumentElectricGuitarOrder,
 } from "./data/instruments";
 import styled from "styled-components";
 import SimpleInstrumentRow from "./components/SimpleInstrumentRow";
@@ -38,6 +39,17 @@ function App() {
         });
       });
       return instrumentScore;
+    }),
+    [instrumentTypes.ELECTRIC_GUITAR]: Array.from({ length: NOTE_NUM }, () => {
+      const instrumentScore = {};
+      instrumentElectricGuitarOrder.forEach((ins) => {
+        instrumentScore[ins] = Array(NOTE_NUM).fill({
+          on: false,
+          isSharp: false,
+          groupId: 0
+        });
+      });
+      return instrumentScore;
     })
   };
   const score = useRef(initialScore);
@@ -46,11 +58,13 @@ function App() {
   // 각 악기 세트별 현재 세트 관리
   const currentSet = useRef({
     [instrumentTypes.DRUM]: 0,
-    [instrumentTypes.BASS]: 0
+    [instrumentTypes.BASS]: 0,
+    [instrumentTypes.ELECTRIC_GUITAR]: 0
   });
   const [seeingCurrentSet, setSeeingCurrentSet] = useState({
     [instrumentTypes.DRUM]: 0,
-    [instrumentTypes.BASS]: 0
+    [instrumentTypes.BASS]: 0,
+    [instrumentTypes.ELECTRIC_GUITAR]: 0
   });
 
   // 시퀀서 훅
@@ -173,7 +187,14 @@ function App() {
 
   // 베이스 음 구간 지정 함수
   const setBassNoteRange = (instrument, startIdx, endIdx, removeGroupId = null) => {
-    const instrumentType = instrumentTypes.BASS;
+    const instrumentType = instrumentBassOrder.includes(instrument) 
+      ? instrumentTypes.BASS 
+      : instrumentElectricGuitarOrder.includes(instrument) 
+        ? instrumentTypes.ELECTRIC_GUITAR 
+        : null;
+    
+    if (!instrumentType) return;
+
     const updatedScoreSet = { ...score.current[instrumentType][currentSet.current[instrumentType]] };
     const row = updatedScoreSet[instrument];
     if (removeGroupId) {
@@ -267,89 +288,61 @@ function App() {
         />
       </HeaderBox>
       <BodyBox>
-        <LeftSide>
+        {Object.entries(instrumentTypes).map(([key, type]) => (
           <LineWrapper 
-            onClick={() => setFocusedInstrumentType(instrumentTypes.DRUM)}
-            isFocused={focusedInstrumentType === instrumentTypes.DRUM}
+            key={type}
+            onClick={() => setFocusedInstrumentType(type)}
+            isFocused={focusedInstrumentType === type}
           >
             <Controls
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
-              volume={volumes[instrumentTypes.DRUM]}
+              volume={volumes[type]}
               changeVolume={changeVolume}
               initializeAudio={initializeAudio}
               isPlaying={isPlaying}
               start={startSequencer}
               stop={stopSequencer}
               clearScore={clearScore}
-              instrumentType={instrumentTypes.DRUM}
+              instrumentType={type}
             />
-            {instrumentDrumOrder.map((ins) => (
-              <SimpleInstrumentRow
-                key={ins}
-                instrumentName={ins}
-                rowScore={seeingScore[instrumentTypes.DRUM][seeingCurrentSet[instrumentTypes.DRUM]][ins]}
-                onToggleNote={toggleNote}
-                isMouseDown={isMouseDown}
-              />
-            ))}
+            {type === instrumentTypes.DRUM ? (
+              instrumentDrumOrder.map((ins) => (
+                <SimpleInstrumentRow
+                  key={ins}
+                  instrumentName={ins}
+                  rowScore={seeingScore[type][seeingCurrentSet[type]][ins]}
+                  onToggleNote={toggleNote}
+                  isMouseDown={isMouseDown}
+                />
+              ))
+            ) : (
+              (type === instrumentTypes.BASS ? instrumentBassOrder : instrumentElectricGuitarOrder).map((ins) => (
+                <BaseInstrumentRow
+                  key={ins}
+                  instrumentName={ins}
+                  rowScore={seeingScore[type][seeingCurrentSet[type]][ins]}
+                  dragInfo={dragInfo}
+                  setDragInfo={setDragInfo}
+                  setNoteRange={setBassNoteRange}
+                />
+              ))
+            )}
             <br />
             <SequenceRow
-              sequanceName={instrumentTypes.DRUM}
-              seeingCurrentSet={seeingCurrentSet[instrumentTypes.DRUM]}
+              sequanceName={type}
+              seeingCurrentSet={seeingCurrentSet[type]}
               currentNote={currentNote}
               isPlaying={isPlaying}
               setSeeingCurrentSet={(newSet) => {
-                currentSet.current[instrumentTypes.DRUM] = newSet;
+                currentSet.current[type] = newSet;
                 setSeeingCurrentSet({ ...currentSet.current });
               }}
-              score={score.current[instrumentTypes.DRUM]}
-              currentSet={currentSet.current[instrumentTypes.DRUM]}
+              score={score.current[type]}
+              currentSet={currentSet.current[type]}
             />
           </LineWrapper>
-        </LeftSide>
-        <RightSide>
-          <LineWrapper 
-            onClick={() => setFocusedInstrumentType(instrumentTypes.BASS)}
-            isFocused={focusedInstrumentType === instrumentTypes.BASS}
-          >
-            <Controls
-              bpmInput={bpmInput}
-              handleBpmChange={handleBpmChange}
-              volume={volumes[instrumentTypes.BASS]}
-              changeVolume={changeVolume}
-              initializeAudio={initializeAudio}
-              isPlaying={isPlaying}
-              start={startSequencer}
-              stop={stopSequencer}
-              clearScore={clearScore}
-              instrumentType={instrumentTypes.BASS}
-            />
-            {instrumentBassOrder.map((ins) => (
-              <BaseInstrumentRow
-                key={ins}
-                instrumentName={ins}
-                rowScore={seeingScore[instrumentTypes.BASS][seeingCurrentSet[instrumentTypes.BASS]][ins]}
-                dragInfo={dragInfo}
-                setDragInfo={setDragInfo}
-                setNoteRange={setBassNoteRange}
-              />
-            ))}
-            <br />
-            <SequenceRow
-              sequanceName={instrumentTypes.BASS}
-              seeingCurrentSet={seeingCurrentSet[instrumentTypes.BASS]}
-              currentNote={currentNote}
-              isPlaying={isPlaying}
-              setSeeingCurrentSet={(newSet) => {
-                currentSet.current[instrumentTypes.BASS] = newSet;
-                setSeeingCurrentSet({ ...currentSet.current });
-              }}
-              score={score.current[instrumentTypes.BASS]}
-              currentSet={currentSet.current[instrumentTypes.BASS]}
-            />
-          </LineWrapper>
-        </RightSide>
+        ))}
       </BodyBox>
     </Wrapper>
   );
@@ -373,7 +366,10 @@ const HeaderBox = styled.div`
 const BodyBox = styled.div`
   width: 100%;
   display: flex;
-  justify-content: space-around;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
 `;
 
 const LeftSide = styled.div`

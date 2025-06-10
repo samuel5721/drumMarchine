@@ -10,6 +10,7 @@ export default function useAudioEngine() {
   const volumes = useRef({
     [instrumentTypes.DRUM]: 0.5,
     [instrumentTypes.BASS]: 0.5,
+    [instrumentTypes.ELECTRIC_GUITAR]: 0.5,
     master: 0.5
   });
   const audioBuffer = useRef(
@@ -29,10 +30,11 @@ export default function useAudioEngine() {
       masterGainNode.current.gain.value = volumes.current.master;
       
       // Drum과 Bass 세트별로 GainNode 생성
-      Object.values(instrumentTypes).forEach(type => {
+      Object.entries(instrumentTypes).forEach(([key, type]) => {
         gainNodes.current[type] = localAudioContext.createGain();
         gainNodes.current[type].connect(masterGainNode.current);
-        gainNodes.current[type].gain.value = volumes.current[type] * 2;
+        const volume = volumes.current[type] || 0.5;
+        gainNodes.current[type].gain.setValueAtTime(volume * 2, localAudioContext.currentTime);
       });
       
       await localAudioContext.resume();
@@ -62,42 +64,42 @@ export default function useAudioEngine() {
           source.start();
         } else {
           const [type, note] = instrumentName.split("_");
-          switch (type) {
-            // base는 오실레이터로 구현함
-            case instrumentTypes.BASS:
-              const freq = frequencyMap[note] || 65.41;
-              const osc = audioContext.createOscillator();
-              const gain = audioContext.createGain();
-
-              osc.type = "sine";
-              osc.frequency.value = freq;
-              osc.connect(gain).connect(gainNodes.current[instrumentTypes.BASS]);
-
-              // 볼륨 값을 0.0001 이상으로 제한
-              const volumeValue = Math.max(volumes.current[instrumentTypes.BASS] * 4, 0.0001);
-              gain.gain.value = volumeValue;
-
-              osc.start();
-
-              const currentBpm = options.currentBpm || 120;
-              // sustainStep이 있으면 그만큼 지속, 없으면 기본값
-              const sustainStep = options.sustainStep || 1;
-              // 한 스텝의 시간(16분음표 기준)
-              const stepTime = (60 / currentBpm) / 4;
-              const sustainTime = sustainStep * stepTime;
-
-              gain.gain.setTargetAtTime(
-                0,
-                audioContext.currentTime + sustainTime - 0.05,
-                0.01
-              );
-
-              osc.stop(audioContext.currentTime + sustainTime);
-              break;
-
-            default:
-              console.error("Invalid instrument name");
+          let oscType = '';
+          switch(type) {
+            case instrumentTypes.BASS: oscType = 'sine'; break;
+            case instrumentTypes.ELECTRIC_GUITAR: oscType = 'triangle'; break;
+            default: console.error('Invalid instrument type:', type); break;
           }
+
+
+          const freq = frequencyMap[note] || 65.41;
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+
+          osc.type = oscType;
+          osc.frequency.value = freq;
+          osc.connect(gain).connect(gainNodes.current[instrumentTypes.BASS]);
+
+          // 볼륨 값을 0.0001 이상으로 제한
+          const volumeValue = Math.max(volumes.current[instrumentTypes.BASS] * 4, 0.0001);
+          gain.gain.value = volumeValue;
+
+          osc.start();
+
+          const currentBpm = options.currentBpm || 120;
+          // sustainStep이 있으면 그만큼 지속, 없으면 기본값
+          const sustainStep = options.sustainStep || 1;
+          // 한 스텝의 시간(16분음표 기준)
+          const stepTime = (60 / currentBpm) / 4;
+          const sustainTime = sustainStep * stepTime;
+
+          gain.gain.setTargetAtTime(
+            0,
+            audioContext.currentTime + sustainTime - 0.05,
+            0.01
+          );
+
+          osc.stop(audioContext.currentTime + sustainTime);
         }
       }
     },

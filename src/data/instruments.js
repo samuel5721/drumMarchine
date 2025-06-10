@@ -6,6 +6,7 @@ import cowBell from "../assets/sound/drum_cowBell.mp3";
 export const instrumentTypes = {
   DRUM: "drum",
   BASS: "bass",
+  ELECTRIC_GUITAR: "electric Guitar",
 };
 
 export const instruments = {
@@ -27,3 +28,13 @@ export const instrumentBassOrder = [
   "bass_D",
   "bass_C",
 ];
+
+export const instrumentElectricGuitarOrder = [
+  "Eg_B",
+  "Eg_A",
+  "Eg_G",
+  "Eg_F",
+  "Eg_E",
+  "Eg_D",
+  "Eg_C",
+]

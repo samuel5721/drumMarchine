@@ -19,12 +19,14 @@ export default function useSequencer({ score, currentSet, playSound }) {
 
       // 각 악기 세트별로 현재 세트의 노트를 재생
       Object.values(instrumentTypes).forEach(type => {
-        const currentScore = score.current[type][currentSet.current[type]];
+        const currentScore = score.current?.[type]?.[currentSet.current?.[type]];
+        if (!currentScore) return;
+        
         for (const ins in currentScore) {
           const note = currentScore[ins][tickCount % NOTE_NUM];
           if (type === instrumentTypes.DRUM && note) {
             playSound(ins);
-          } else if (type === instrumentTypes.BASS && note.on && note.groupId !== 0) {
+          } else if (type === instrumentTypes.BASS && note?.on && note?.groupId !== 0) {
             // 연속된 groupId의 첫 인덱스에서만 playSound 호출
             const prevIdx = (tickCount - 1 + NOTE_NUM) % NOTE_NUM;
             const prevNote = currentScore[ins][prevIdx];
@@ -36,7 +38,7 @@ export default function useSequencer({ score, currentSet, playSound }) {
                 const nextNote = currentScore[ins][nextIdx];
                 if (nextNote.on && nextNote.groupId === note.groupId) {
                   sustainStep++;
-            } else {
+                } else {
                   break;
                 }
               }
