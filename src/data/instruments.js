@@ -1,29 +1,26 @@
-import kick from "../assets/sound/drum_kick.wav";
-import snare from "../assets/sound/drum_snare.wav";
-import hiHat from "../assets/sound/drum_hiHat.wav";
-import cowBell from "../assets/sound/drum_cowBell.mp3";
-
 export const instrumentTypes = {
   DRUM: "drum",
   BASS: "bass",
 };
 
-export const instruments = {
-  kick,
-  snare,
-  hiHat,
-  cowBell,
-};
-
-export const instrumentDrumOrder = ["cowBell", "hiHat", "snare", "kick"];
+export const instrumentDrumOrder = [
+  "crash",
+  "hiHat",
+  "highTom",
+  "midTom",
+  "lowTom",
+  "snare",
+  "kick"
+];
 
 //bass 순서 반대로
 export const instrumentBassOrder = [
-  "bass_B",
-  "bass_A",
-  "bass_G",
-  "bass_F",
-  "bass_E",
-  "bass_D",
-  "bass_C",
+  "bass_C2",
+  "bass_B1",
+  "bass_A1",
+  "bass_G1",
+  "bass_F1",
+  "bass_E1",
+  "bass_D1",
+  "bass_C1",
 ];

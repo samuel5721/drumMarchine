@@ -1,123 +1,138 @@
 import { useState, useRef, useCallback } from "react";
-import { instrumentTypes, instruments } from "../data/instruments";
-import { frequencyMap } from "../data/scale";
+import { instrumentTypes, instrumentDrumOrder, instrumentBassOrder } from "../data/instruments";
+import { drumSynthConfigs } from "../data/synthConfigs";
+import * as Tone from 'tone';
 
 export default function useAudioEngine() {
-  const [audioContext, setAudioContext] = useState(null);
   const [isFetched, setIsFetched] = useState(false);
-  const gainNodes = useRef({});
-  const masterGainNode = useRef(null);
+  const synth = useRef(null);
+  const drumSynths = useRef({});
   const volumes = useRef({
     [instrumentTypes.DRUM]: 0.5,
     [instrumentTypes.BASS]: 0.5,
     master: 0.5
   });
-  const audioBuffer = useRef(
-    Object.keys(instruments).reduce((acc, key) => ({ ...acc, [key]: null }), {})
-  );
 
   const initializeAudio = async () => {
     if (isFetched) return;
-    let localAudioContext = audioContext;
-    if (!localAudioContext) {
-      localAudioContext = new AudioContext();
-      setAudioContext(localAudioContext);
-      
-      // 마스터 GainNode 생성
-      masterGainNode.current = localAudioContext.createGain();
-      masterGainNode.current.connect(localAudioContext.destination);
-      masterGainNode.current.gain.value = volumes.current.master;
-      
-      // Drum과 Bass 세트별로 GainNode 생성
-      Object.values(instrumentTypes).forEach(type => {
-        gainNodes.current[type] = localAudioContext.createGain();
-        gainNodes.current[type].connect(masterGainNode.current);
-        gainNodes.current[type].gain.value = volumes.current[type] * 2;
-      });
-      
-      await localAudioContext.resume();
-    }
-    try {
-      for (let s in instruments) {
-        if (instruments[s]) {
-          const response = await fetch(instruments[s]);
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = await localAudioContext.decodeAudioData(arrayBuffer);
-          audioBuffer.current[s] = buffer;
+    await Tone.start();
+    
+    // 베이스 신디사이저 초기화
+    synth.current = new Tone.Synth().toDestination();
+    
+    // 드럼 신디사이저 초기화
+    drumSynths.current = {};
+    console.log('Initializing drum synths with configs:', drumSynthConfigs);
+    
+    Object.entries(drumSynthConfigs).forEach(([name, config]) => {
+      console.log(`Creating synth for ${name}:`, config);
+      const SynthClass = Tone[config.type];
+      if (SynthClass) {
+        try {
+          drumSynths.current[name] = new SynthClass(config.options).toDestination();
+          console.log(`Successfully created ${name} synth`);
+        } catch (error) {
+          console.error(`Failed to create ${name} synth:`, error);
         }
+      } else {
+        console.error(`Synth class not found for ${name}: ${config.type}`);
       }
-    } catch (e) {
-      console.error("Error fetching or decoding audio", e);
-    }
+    });
+    
+    console.log('Final drum synths:', drumSynths.current);
     setIsFetched(true);
   };
 
   const playSound = useCallback(
     (instrumentName, options = {}) => {
-      if (audioContext) {
-        if (instruments[instrumentName]) {
-          const source = audioContext.createBufferSource();
-          source.buffer = audioBuffer.current[instrumentName];
-          source.connect(gainNodes.current[instrumentTypes.DRUM]);
-          source.start();
-        } else {
-          const [type, note] = instrumentName.split("_");
-          switch (type) {
-            // base는 오실레이터로 구현함
-            case instrumentTypes.BASS:
-              const freq = frequencyMap[note] || 65.41;
-              const osc = audioContext.createOscillator();
-              const gain = audioContext.createGain();
+      console.log('playSound called with:', instrumentName, options);
+      
+      if (!synth.current || !drumSynths.current) {
+        console.log('synth is not initialized');
+        return;
+      }
 
-              osc.type = "sine";
-              osc.frequency.value = freq;
-              osc.connect(gain).connect(gainNodes.current[instrumentTypes.BASS]);
+      // 악기 타입 결정 로직 수정
+      let instrumentType;
+      if (instrumentDrumOrder.includes(instrumentName)) {
+        instrumentType = instrumentTypes.DRUM;
+      } else if (instrumentBassOrder.includes(instrumentName)) {
+        instrumentType = instrumentTypes.BASS;
+      }
+      
+      console.log('instrumentType:', instrumentType);
 
-              // 볼륨 값을 0.0001 이상으로 제한
-              const volumeValue = Math.max(volumes.current[instrumentTypes.BASS] * 4, 0.0001);
-              gain.gain.value = volumeValue;
+      if (!instrumentType) {
+        console.log('instrumentType not found');
+        return;
+      }
 
-              osc.start();
-
-              const currentBpm = options.currentBpm || 120;
-              // sustainStep이 있으면 그만큼 지속, 없으면 기본값
-              const sustainStep = options.sustainStep || 1;
-              // 한 스텝의 시간(16분음표 기준)
-              const stepTime = (60 / currentBpm) / 4;
-              const sustainTime = sustainStep * stepTime;
-
-              gain.gain.setTargetAtTime(
-                0,
-                audioContext.currentTime + sustainTime - 0.05,
-                0.01
+      // 볼륨 값 검증 및 계산
+      const instrumentVolume = volumes.current[instrumentType] || 0.5;
+      const masterVolume = volumes.current.master || 0.5;
+      const volume = Math.max(0, Math.min(1, instrumentVolume * masterVolume));
+      
+      try {
+        if (instrumentType === instrumentTypes.DRUM) {
+          // 드럼 악기별 재생
+          const drumSynth = drumSynths.current[instrumentName];
+          const config = drumSynthConfigs[instrumentName];
+          
+          console.log(`Playing drum ${instrumentName}:`, { 
+            drumSynth, 
+            config,
+            type: config.type,
+            options: config.options,
+            playOptions: config.playOptions
+          });
+          
+          if (drumSynth && config) {
+            drumSynth.volume.value = Tone.gainToDb(volume);
+            
+            // NoiseSynth는 note 파라미터가 필요 없음
+            if (config.type === 'NoiseSynth') {
+              console.log(`Triggering NoiseSynth for ${instrumentName}`);
+              drumSynth.triggerAttackRelease(config.playOptions.duration);
+            } else {
+              console.log(`Triggering ${config.type} for ${instrumentName}`);
+              drumSynth.triggerAttackRelease(
+                config.playOptions.note,
+                config.playOptions.duration
               );
-
-              osc.stop(audioContext.currentTime + sustainTime);
-              break;
-
-            default:
-              console.error("Invalid instrument name");
+            }
+          } else {
+            console.error(`Missing synth or config for ${instrumentName}`);
           }
+        } else if (instrumentType === instrumentTypes.BASS) {
+          // 베이스 악기 재생
+          synth.current.volume.value = Tone.gainToDb(volume);
+          
+          // 베이스 악기 이름에서 음높이 추출
+          const note = instrumentName.replace('bass_', '');
+          
+          // 드래그 길이에 따른 음 길이 계산
+          const sustainStep = options.sustainStep || 1;
+          const currentBpm = options.currentBpm || 120;
+          
+          // 16분음표 기준으로 길이 계산 (4분음표 = 1박)
+          const durationInBeats = sustainStep * (1/4); // 16분음표 = 1/4박
+          const durationInSeconds = (60 / currentBpm) * durationInBeats;
+          
+          console.log('BASS note:', note, 'duration:', durationInSeconds, 'seconds');
+          synth.current.triggerAttackRelease(note, durationInSeconds);
         }
+      } catch (error) {
+        console.warn('Sound playing failed:', error);
       }
     },
-    [audioContext]
+    []
   );
 
   const changeVolume = (instrumentType, newVolume) => {
-    // 볼륨 값을 0.0001 이상으로 제한
-    const safeVolume = Math.max(newVolume, 0.0001);
-    
-    if (instrumentType === 'master') {
-      volumes.current.master = safeVolume;
-      if (masterGainNode.current) {
-        masterGainNode.current.gain.value = safeVolume;
-      }
-    } else {
-      volumes.current[instrumentType] = safeVolume;
-      if (gainNodes.current[instrumentType]) {
-        gainNodes.current[instrumentType].gain.value = safeVolume * 2;
-      }
+    if (volumes.current.hasOwnProperty(instrumentType)) {
+      // 볼륨 값 검증
+      const validatedVolume = Math.max(0, Math.min(1, newVolume));
+      volumes.current[instrumentType] = validatedVolume;
     }
   };
 

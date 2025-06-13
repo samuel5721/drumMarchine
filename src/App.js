@@ -7,13 +7,13 @@ import useSequencer from "./hooks/useSequencer";
 import { NOTE_NUM, DEFAULT_BPM } from "./utils/constants";
 import {
   instrumentTypes,
-  instruments,
   instrumentDrumOrder,
   instrumentBassOrder,
 } from "./data/instruments";
 import styled from "styled-components";
 import SimpleInstrumentRow from "./components/SimpleInstrumentRow";
 import BaseInstrumentRow from "./components/BaseInstrumentRow";
+import * as Tone from 'tone';
 
 function App() {
   const { initializeAudio, playSound, changeVolume, volumes } = useAudioEngine();
@@ -55,7 +55,7 @@ function App() {
 
   // 시퀀서 훅
   const { isPlaying, currentNote, startSequencer, stopSequencer, changeBpm } =
-    useSequencer({ score, currentSet, playSound, instruments });
+    useSequencer({ score, currentSet, playSound });
 
   // BPM
   const [bpmInput, setBpmInput] = useState(DEFAULT_BPM);
@@ -168,6 +168,7 @@ function App() {
     if (!isNaN(value)) {
       setBpmInput(value);
       changeBpm(value);
+      Tone.getContext().transport.bpm.value = value;
     }
   };
 
@@ -400,5 +401,6 @@ const LineWrapper = styled.div`
   border: none;
   box-shadow: ${props => props.isFocused ? 'inset 0 0 0 1px #888' : 'none'};
 `;
+
 
 export default App;
