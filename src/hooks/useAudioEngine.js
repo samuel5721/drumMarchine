@@ -1,15 +1,16 @@
-import { useState, useRef, useCallback } from "react";
-import { instrumentTypes, instrumentDrumOrder, instrumentBassOrder } from "../data/instruments";
-import { drumSynthConfigs } from "../data/synthConfigs";
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { instrumentTypes, instrumentDrumOrder, instrumentBassOrder } from '../data/instruments';
+import { drumSynthConfigs } from '../data/synthConfigs';
 import * as Tone from 'tone';
 
-export default function useAudioEngine() {
+export const useAudioEngine = () => {
   const [isFetched, setIsFetched] = useState(false);
   const synth = useRef(null);
   const drumSynths = useRef({});
   const volumes = useRef({
     [instrumentTypes.DRUM]: 0.5,
     [instrumentTypes.BASS]: 0.5,
+    [instrumentTypes.ELECTRIC_GUITAR]: 0.5,
     master: 0.5
   });
 
@@ -128,18 +129,20 @@ export default function useAudioEngine() {
     []
   );
 
-  const changeVolume = (instrumentType, newVolume) => {
-    if (volumes.current.hasOwnProperty(instrumentType)) {
-      // 볼륨 값 검증
-      const validatedVolume = Math.max(0, Math.min(1, newVolume));
-      volumes.current[instrumentType] = validatedVolume;
+  const setVolume = useCallback((type, value) => {
+    if (volumes.current.hasOwnProperty(type)) {
+      volumes.current[type] = value;
+      console.log(`Volume set for ${type}:`, value);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    initializeAudio();
+  }, []);
 
   return {
-    initializeAudio,
     playSound,
-    changeVolume,
-    volumes: volumes.current,
+    setVolume,
+    isFetched
   };
-}
+};

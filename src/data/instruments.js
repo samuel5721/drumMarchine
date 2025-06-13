@@ -1,6 +1,7 @@
 export const instrumentTypes = {
   DRUM: "drum",
   BASS: "bass",
+  ELECTRIC_GUITAR: "electric Guitar",
 };
 
 export const instrumentDrumOrder = [
@@ -24,3 +25,13 @@ export const instrumentBassOrder = [
   "bass_D1",
   "bass_C1",
 ];
+
+export const instrumentElectricGuitarOrder = [
+  "Eg_B",
+  "Eg_A",
+  "Eg_G",
+  "Eg_F",
+  "Eg_E",
+  "Eg_D",
+  "Eg_C",
+]
