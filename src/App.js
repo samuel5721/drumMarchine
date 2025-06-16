@@ -9,6 +9,7 @@ import {
   instrumentTypes,
   instrumentDrumOrder,
   instrumentBassOrder,
+  instrumentSynthOrder,
 } from "./data/instruments";
 import SimpleInstrumentRow from "./components/SimpleInstrumentRow";
 import BaseInstrumentRow from "./components/BaseInstrumentRow";
@@ -39,6 +40,17 @@ function App() {
         });
       });
       return instrumentScore;
+    }),
+    [instrumentTypes.SYNTH]: Array.from({ length: NOTE_NUM }, () => {
+      const instrumentScore = {};
+      instrumentSynthOrder.forEach((ins) => {
+        instrumentScore[ins] = Array(NOTE_NUM).fill({
+          on: false,
+          isSharp: false,
+          groupId: 0
+        });
+      });
+      return instrumentScore;
     })
   };
   const score = useRef(initialScore);
@@ -47,16 +59,24 @@ function App() {
   // 각 악기 세트별 현재 세트 관리
   const currentSet = useRef({
     [instrumentTypes.DRUM]: 0,
-    [instrumentTypes.BASS]: 0
+    [instrumentTypes.BASS]: 0,
+    [instrumentTypes.SYNTH]: 0
   });
   const [seeingCurrentSet, setSeeingCurrentSet] = useState({
     [instrumentTypes.DRUM]: 0,
-    [instrumentTypes.BASS]: 0
+    [instrumentTypes.BASS]: 0,
+    [instrumentTypes.SYNTH]: 0
   });
 
   // 시퀀서 훅
-  const { isPlaying, currentNote, startSequencer, stopSequencer, changeBpm } =
+  const { isPlaying, currentNote, startSequencer: originalStartSequencer, stopSequencer, changeBpm } =
     useSequencer({ score, currentSet, playSound });
+
+  // 시작 함수 래퍼
+  const startSequencer = async () => {
+    await initializeAudio();
+    originalStartSequencer();
+  };
 
   // BPM
   const [bpmInput, setBpmInput] = useState(DEFAULT_BPM);
@@ -184,7 +204,17 @@ function App() {
 
   // 베이스 음 구간 지정 함수
   const setBassNoteRange = (instrument, startIdx, endIdx, removeGroupId = null) => {
-    const instrumentType = instrumentTypes.BASS;
+    // 악기 타입 결정
+    let instrumentType;
+    if (instrumentBassOrder.includes(instrument)) {
+      instrumentType = instrumentTypes.BASS;
+    } else if (instrumentSynthOrder.includes(instrument)) {
+      instrumentType = instrumentTypes.SYNTH;
+    } else {
+      console.error('Unknown instrument type:', instrument);
+      return;
+    }
+
     const updatedScoreSet = { ...score.current[instrumentType][currentSet.current[instrumentType]] };
     const row = updatedScoreSet[instrument];
     if (removeGroupId) {
@@ -358,6 +388,46 @@ function App() {
               }}
               score={score.current[instrumentTypes.BASS]}
               currentSet={currentSet.current[instrumentTypes.BASS]}
+            />
+          </LineWrapper>
+          <LineWrapper 
+            onClick={() => setFocusedInstrumentType(instrumentTypes.SYNTH)}
+            isFocused={focusedInstrumentType === instrumentTypes.SYNTH}
+          >
+            <Controls
+              bpmInput={bpmInput}
+              handleBpmChange={handleBpmChange}
+              volume={volumes[instrumentTypes.SYNTH]}
+              changeVolume={setVolume}
+              initializeAudio={initializeAudio}
+              isPlaying={isPlaying}
+              start={startSequencer}
+              stop={stopSequencer}
+              clearScore={clearScore}
+              instrumentType={instrumentTypes.SYNTH}
+            />
+            {instrumentSynthOrder.map((ins) => (
+              <BaseInstrumentRow
+                key={ins}
+                instrumentName={ins}
+                rowScore={seeingScore[instrumentTypes.SYNTH][seeingCurrentSet[instrumentTypes.SYNTH]][ins]}
+                dragInfo={dragInfo}
+                setDragInfo={setDragInfo}
+                setNoteRange={setBassNoteRange}
+              />
+            ))}
+            <br />
+            <SequenceRow
+              sequanceName={instrumentTypes.SYNTH}
+              seeingCurrentSet={seeingCurrentSet[instrumentTypes.SYNTH]}
+              currentNote={currentNote}
+              isPlaying={isPlaying}
+              setSeeingCurrentSet={(newSet) => {
+                currentSet.current[instrumentTypes.SYNTH] = newSet;
+                setSeeingCurrentSet({ ...currentSet.current });
+              }}
+              score={score.current[instrumentTypes.SYNTH]}
+              currentSet={currentSet.current[instrumentTypes.SYNTH]}
             />
           </LineWrapper>
         </RightSide>

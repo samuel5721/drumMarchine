@@ -1,6 +1,7 @@
 export const instrumentTypes = {
   DRUM: "drum",
   BASS: "bass",
+  SYNTH: "synth"
 };
 
 export const instrumentDrumOrder = [
@@ -24,4 +25,16 @@ export const instrumentBassOrder = [
   "bass_E1",
   "bass_D1",
   "bass_C1",
+];
+
+//synth 순서 반대로
+export const instrumentSynthOrder = [
+  "synth_C3",
+  "synth_B2",
+  "synth_A2",
+  "synth_G2",
+  "synth_F2",
+  "synth_E2",
+  "synth_D2",
+  "synth_C2",
 ];
