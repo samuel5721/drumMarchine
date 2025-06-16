@@ -153,14 +153,23 @@ function App() {
 
   // 세트 클리어
   const clearScore = () => {
-    if (focusedInstrumentType) {
+    // 모든 악기 타입에 대해 클리어 수행
+    Object.values(instrumentTypes).forEach(type => {
       const clearedSet = {};
-      Object.keys(score.current[focusedInstrumentType][currentSet.current[focusedInstrumentType]]).forEach((ins) => {
-        clearedSet[ins] = Array(NOTE_NUM).fill(0);
+      Object.keys(score.current[type][currentSet.current[type]]).forEach((ins) => {
+        if (type === instrumentTypes.DRUM) {
+          clearedSet[ins] = Array(NOTE_NUM).fill(false);
+        } else {
+          clearedSet[ins] = Array(NOTE_NUM).fill({
+            on: false,
+            isSharp: false,
+            groupId: 0
+          });
+        }
       });
-      score.current[focusedInstrumentType][currentSet.current[focusedInstrumentType]] = clearedSet;
-      setSeeingScore({ ...score.current });
-    }
+      score.current[type][currentSet.current[type]] = clearedSet;
+    });
+    setSeeingScore({ ...score.current });
   };
 
   // BPM 변경
