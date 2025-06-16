@@ -66,6 +66,23 @@ export const drumSynthConfigs = {
     }
   },
 
+  // 라이드 심벌 (Ride)
+  ride: {
+    type: 'MetalSynth',
+    options: {
+      frequency: 200,
+      envelope: { attack: 0.001, decay: 0.5, release: 2 },
+      harmonicity: 3.1,
+      modulationIndex: 32,
+      resonance: 2000,
+      octaves: 1
+    },
+    playOptions: {
+      note: "C3",
+      duration: "1n"
+    }
+  },
+
   // 하이탐 (High Tom)
   highTom: {
     type: 'MembraneSynth',
