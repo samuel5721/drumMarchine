@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { instrumentTypes, instrumentDrumOrder, instrumentBassOrder } from '../data/instruments';
 import { drumSynthConfigs } from '../data/synthConfigs';
-import * as Tone from 'tone';
+const Tone = require('tone');
 
-export const useAudioEngine = () => {
+const useAudioEngine = () => {
   const [isFetched, setIsFetched] = useState(false);
   const synth = useRef(null);
   const drumSynths = useRef({});
@@ -143,6 +143,9 @@ export const useAudioEngine = () => {
   return {
     playSound,
     setVolume,
-    isFetched
+    isFetched,
+    volumes: volumes.current
   };
 }
+
+export default useAudioEngine;

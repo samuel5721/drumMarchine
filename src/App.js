@@ -10,13 +10,14 @@ import {
   instrumentDrumOrder,
   instrumentBassOrder,
 } from "./data/instruments";
-import styled from "styled-components";
 import SimpleInstrumentRow from "./components/SimpleInstrumentRow";
 import BaseInstrumentRow from "./components/BaseInstrumentRow";
+
+import styled from "styled-components";
 import * as Tone from 'tone';
 
 function App() {
-  const { initializeAudio, playSound, changeVolume, volumes } = useAudioEngine();
+  const { initializeAudio, playSound, setVolume, volumes } = useAudioEngine();
   const [focusedInstrumentType, setFocusedInstrumentType] = useState(null);
 
   // 각 악기 세트별로 노트 관리
@@ -114,7 +115,7 @@ function App() {
     }
     if (scoreData.volumes) {
       Object.entries(scoreData.volumes).forEach(([type, volume]) => {
-        changeVolume(type, volume);
+        setVolume(type, volume);
       });
     }
   };
@@ -256,7 +257,7 @@ function App() {
           bpmInput={bpmInput}
           handleBpmChange={handleBpmChange}
           volume={volumes.master}
-          changeVolume={changeVolume}
+          changeVolume={setVolume}
           initializeAudio={initializeAudio}
           isPlaying={isPlaying}
           start={startSequencer}
@@ -277,7 +278,7 @@ function App() {
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
               volume={volumes[instrumentTypes.DRUM]}
-              changeVolume={changeVolume}
+              changeVolume={setVolume}
               initializeAudio={initializeAudio}
               isPlaying={isPlaying}
               start={startSequencer}
@@ -318,7 +319,7 @@ function App() {
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
               volume={volumes[instrumentTypes.BASS]}
-              changeVolume={changeVolume}
+              changeVolume={setVolume}
               initializeAudio={initializeAudio}
               isPlaying={isPlaying}
               start={startSequencer}
