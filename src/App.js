@@ -237,6 +237,116 @@ function App() {
     setSeeingScore({ ...score.current });
   };
 
+  const [isToggleActive, setIsToggleActive] = useState(false);
+  const reservedScoreChanges = useRef({
+    [instrumentTypes.DRUM]: null,
+    [instrumentTypes.BASS]: null,
+    [instrumentTypes.SYNTH]: null
+  });
+
+  // 프리셋 관련 상태
+  const [presetQueue, setPresetQueue] = useState([]);
+  const [currentPresetIndex, setCurrentPresetIndex] = useState(0);
+  const [currentMeasure, setCurrentMeasure] = useState(0);
+
+  // 프리셋 import 처리
+  const importPreset = (presetData) => {
+    try {
+      const lines = presetData.split('\n').filter(line => line.trim());
+      console.log('프리셋 파일 내용:', lines);
+      
+      const parsedPresets = lines.map(line => {
+        const [instrument, ...measures] = line.trim().split('');
+        return {
+          instrument: instrument.toLowerCase(),
+          measures: measures.map(Number)
+        };
+      });
+      console.log('파싱된 프리셋:', parsedPresets);
+      
+      setPresetQueue(parsedPresets);
+      setCurrentPresetIndex(0);
+      setCurrentMeasure(0);
+    } catch (error) {
+      console.error('Error parsing preset:', error);
+      alert('프리셋 파일 형식이 올바르지 않습니다.');
+    }
+  };
+
+  // 악보 변경 예약 함수
+  const reserveScoreChange = (type, newSet) => {
+    if (isToggleActive) {
+      reservedScoreChanges.current[type] = newSet;
+    } else {
+      currentSet.current[type] = newSet;
+      setSeeingCurrentSet({ ...currentSet.current });
+    }
+  };
+
+  // 현재 노트가 변경될 때 예약된 악보 변경 처리
+  useEffect(() => {
+    if (currentNote === 15) { // 마지막 노트에서 다음 마디의 악보로 미리 변경
+      console.log('마디 변경 시점 - 현재 노트:', currentNote);
+      console.log('현재 프리셋 큐:', presetQueue);
+      console.log('현재 프리셋 인덱스:', currentPresetIndex);
+      console.log('현재 마디:', currentMeasure);
+
+      // 예약된 악보 변경 처리
+      Object.entries(reservedScoreChanges.current).forEach(([type, newSet]) => {
+        if (newSet !== null) {
+          currentSet.current[type] = newSet;
+          reservedScoreChanges.current[type] = null;
+        }
+      });
+
+      // 프리셋 처리
+      if (presetQueue.length > 0) {
+        const currentPreset = presetQueue[currentPresetIndex];
+        console.log('현재 적용할 프리셋:', currentPreset);
+        
+        if (currentPreset) {
+          if (currentMeasure < currentPreset.measures.length) {
+            const newSet = currentPreset.measures[currentMeasure] - 1;
+            console.log('설정할 악보 번호:', newSet + 1);
+            
+            if (newSet >= 0) {
+              let instrumentType;
+              switch (currentPreset.instrument) {
+                case 'q':
+                  instrumentType = instrumentTypes.DRUM;
+                  break;
+                case 'w':
+                  instrumentType = instrumentTypes.BASS;
+                  break;
+                case 'e':
+                  instrumentType = instrumentTypes.SYNTH;
+                  break;
+              }
+              
+              if (instrumentType) {
+                currentSet.current[instrumentType] = newSet;
+                console.log(`${instrumentType} 악보 변경:`, newSet + 1);
+                // 프리셋 적용 시 해당 악기에 포커스
+                setFocusedInstrumentType(instrumentType);
+              }
+            }
+          }
+        }
+        // 다음 프리셋으로 이동
+        const nextIndex = (currentPresetIndex + 1) % presetQueue.length;
+        console.log('다음 프리셋 인덱스로 변경:', nextIndex);
+        setCurrentPresetIndex(nextIndex);
+
+        // 마지막 프리셋이면 마디 증가
+        if (nextIndex === 0) {
+          setCurrentMeasure(prev => prev + 1);
+        }
+      }
+
+      setSeeingCurrentSet({ ...currentSet.current });
+    }
+  }, [currentNote, presetQueue, currentPresetIndex, currentMeasure]);
+
   // 키보드 이벤트
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -245,6 +355,8 @@ function App() {
         setFocusedInstrumentType(instrumentTypes.DRUM);
       } else if (e.key === 'w') {
         setFocusedInstrumentType(instrumentTypes.BASS);
+      } else if (e.key === 'e') {
+        setFocusedInstrumentType(instrumentTypes.SYNTH);
       } else if (e.key === 'Escape') {
         setFocusedInstrumentType(null);
       }
@@ -255,17 +367,15 @@ function App() {
           e.preventDefault();
           const newSet = parseInt(e.key, 10) - 1;
           Object.values(instrumentTypes).forEach(type => {
-            currentSet.current[type] = newSet;
+            reserveScoreChange(type, newSet);
           });
-          setSeeingCurrentSet({ ...currentSet.current });
           setFocusedInstrumentType(null); // 포커스 해제
         }
         if (e.key === "0") {
           e.preventDefault();
           Object.values(instrumentTypes).forEach(type => {
-            currentSet.current[type] = 9;
+            reserveScoreChange(type, 9);
           });
-          setSeeingCurrentSet({ ...currentSet.current });
           setFocusedInstrumentType(null); // 포커스 해제
         }
       }
@@ -274,19 +384,17 @@ function App() {
       else if (focusedInstrumentType) {
         if (e.key >= "1" && e.key <= "9") {
           e.preventDefault();
-          currentSet.current[focusedInstrumentType] = parseInt(e.key, 10) - 1;
-          setSeeingCurrentSet({ ...currentSet.current });
+          reserveScoreChange(focusedInstrumentType, parseInt(e.key, 10) - 1);
         }
         if (e.key === "0") {
           e.preventDefault();
-          currentSet.current[focusedInstrumentType] = 9;
-          setSeeingCurrentSet({ ...currentSet.current });
+          reserveScoreChange(focusedInstrumentType, 9);
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [focusedInstrumentType]);
+  }, [focusedInstrumentType, isToggleActive]);
 
   return (
     <Wrapper>
@@ -305,6 +413,9 @@ function App() {
           instrumentType="master"
           exportScore={exportScore}
           importScore={importScore}
+          isToggleActive={isToggleActive}
+          setIsToggleActive={setIsToggleActive}
+          importPreset={importPreset}
         />
       </HeaderBox>
       <BodyBox>

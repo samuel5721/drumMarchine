@@ -36,6 +36,11 @@ const OptionBtn = styled.button`
   border-radius: 0.25rem;
 `;
 
+const ToggleBtn = styled(OptionBtn)`
+  background-color: ${props => props.$isActive ? '#4CAF50' : 'white'};
+  color: ${props => props.$isActive ? 'white' : 'black'};
+`;
+
 const FileInput = styled.input`
   display: none;
 `;
@@ -53,11 +58,19 @@ const MainControls = ({
   instrumentType,
   exportScore,
   importScore,
+  isToggleActive,
+  setIsToggleActive,
+  importPreset,
 }) => {
   const fileInputRef = React.useRef(null);
+  const presetInputRef = React.useRef(null);
 
   const handleImportClick = () => {
     fileInputRef.current.click();
+  };
+
+  const handlePresetImportClick = () => {
+    presetInputRef.current.click();
   };
 
   const handleFileChange = (e) => {
@@ -71,6 +84,23 @@ const MainControls = ({
         } catch (error) {
           console.error('Error importing score:', error);
           alert('잘못된 파일 형식입니다.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handlePresetFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const presetData = event.target.result;
+          importPreset(presetData);
+        } catch (error) {
+          console.error('Error importing preset:', error);
+          alert('잘못된 프리셋 파일 형식입니다.');
         }
       };
       reader.readAsText(file);
@@ -102,15 +132,28 @@ const MainControls = ({
           <OptionBtn onClick={start}>Play</OptionBtn>
         )}
         <OptionBtn onClick={clearScore}>All Clear</OptionBtn>
+        <ToggleBtn 
+          $isActive={isToggleActive}
+          onClick={() => setIsToggleActive(!isToggleActive)}
+        >
+          {isToggleActive ? '예약 모드' : '즉시 모드'}
+        </ToggleBtn>
       </Box>
       <Box>
         <OptionBtn onClick={exportScore}>Export</OptionBtn>
         <OptionBtn onClick={handleImportClick}>Import</OptionBtn>
+        <OptionBtn onClick={handlePresetImportClick}>Import Preset</OptionBtn>
         <FileInput
           type="file"
           accept=".json"
           ref={fileInputRef}
           onChange={handleFileChange}
+        />
+        <FileInput
+          type="file"
+          accept=".txt"
+          ref={presetInputRef}
+          onChange={handlePresetFileChange}
         />
       </Box>
     </OptionWrapper>

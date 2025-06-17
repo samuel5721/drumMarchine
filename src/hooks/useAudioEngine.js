@@ -30,8 +30,8 @@ const useAudioEngine = () => {
 
       // 마스터 게인 노드 생성
       masterGain.current = new Tone.Gain(1).toDestination();
-      
-      // 베이스 신디사이저 초기화
+    
+    // 베이스 신디사이저 초기화
       bassSynths.current = {};
       bassGains.current = {};
       instrumentBassOrder.forEach(note => {
@@ -68,31 +68,31 @@ const useAudioEngine = () => {
           }
         }).connect(gainNode);
       });
-      
-      // 드럼 신디사이저 초기화
-      drumSynths.current = {};
+    
+    // 드럼 신디사이저 초기화
+    drumSynths.current = {};
       drumGains.current = {};
-      console.log('Initializing drum synths with configs:', drumSynthConfigs);
-      
-      Object.entries(drumSynthConfigs).forEach(([name, config]) => {
-        console.log(`Creating synth for ${name}:`, config);
-        const SynthClass = Tone[config.type];
-        if (SynthClass) {
-          try {
+    console.log('Initializing drum synths with configs:', drumSynthConfigs);
+    
+    Object.entries(drumSynthConfigs).forEach(([name, config]) => {
+      console.log(`Creating synth for ${name}:`, config);
+      const SynthClass = Tone[config.type];
+      if (SynthClass) {
+        try {
             const gainNode = new Tone.Gain(config.type === 'MembraneSynth' ? 5 : 3).connect(masterGain.current);
             drumGains.current[name] = gainNode;
             drumSynths.current[name] = new SynthClass(config.options).connect(gainNode);
-            console.log(`Successfully created ${name} synth`);
-          } catch (error) {
-            console.error(`Failed to create ${name} synth:`, error);
-          }
-        } else {
-          console.error(`Synth class not found for ${name}: ${config.type}`);
+          console.log(`Successfully created ${name} synth`);
+        } catch (error) {
+          console.error(`Failed to create ${name} synth:`, error);
         }
-      });
-      
-      console.log('Final drum synths:', drumSynths.current);
-      setIsFetched(true);
+      } else {
+        console.error(`Synth class not found for ${name}: ${config.type}`);
+      }
+    });
+    
+    console.log('Final drum synths:', drumSynths.current);
+    setIsFetched(true);
       return true;
     } catch (error) {
       console.error('Failed to initialize audio:', error);
@@ -116,7 +116,7 @@ const useAudioEngine = () => {
       } else if (type === instrumentTypes.BASS) {
         Object.values(bassGains.current).forEach(gain => {
           if (gain) {
-            gain.gain.value = value * volumes.current.master;
+            gain.gain.value = value *2* volumes.current.master;
           }
         });
       } else if (type === instrumentTypes.SYNTH) {
@@ -135,7 +135,7 @@ const useAudioEngine = () => {
         });
         Object.values(bassGains.current).forEach(gain => {
           if (gain) {
-            gain.gain.value = volumes.current[instrumentTypes.BASS] * value;
+            gain.gain.value = volumes.current[instrumentTypes.BASS] *2* value;
           }
         });
         Object.values(synthGains.current).forEach(gain => {
@@ -149,7 +149,6 @@ const useAudioEngine = () => {
 
   const playSound = useCallback(
     async (instrumentName, options = {}) => {
-      console.log('playSound called with:', instrumentName, options);
       
       if (!isFetched) {
         console.log('Audio not initialized yet, initializing...');
@@ -174,8 +173,6 @@ const useAudioEngine = () => {
       } else if (instrumentSynthOrder.includes(instrumentName)) {
         instrumentType = instrumentTypes.SYNTH;
       }
-      
-      console.log('instrumentType:', instrumentType);
 
       if (!instrumentType) {
         console.error('instrumentType not found');
@@ -211,10 +208,10 @@ const useAudioEngine = () => {
             // 16분음표 기준으로 길이 계산 (4분음표 = 1박)
             const durationInBeats = sustainStep * (1/4); // 16분음표 = 1/4박
             const durationInSeconds = (60 / currentBpm) * durationInBeats;
-            
+          
             // 음표 이름에서 실제 음 추출 (예: "bass_C1" -> "C1")
             let note = instrumentName.replace('bass_', '');
-            
+          
             // 샵이 적용된 경우 음을 반음 올림
             if (isSharp) {
               const noteMap = {
@@ -240,13 +237,13 @@ const useAudioEngine = () => {
           // 신디사이저 악기 재생
           const synthSynth = synthSynths.current[instrumentName];
           if (synthSynth) {
-            // 드래그 길이에 따른 음 길이 계산
+          // 드래그 길이에 따른 음 길이 계산
             const { sustainStep, currentBpm, isSharp, isOctaveUp } = options;
-            
-            // 16분음표 기준으로 길이 계산 (4분음표 = 1박)
-            const durationInBeats = sustainStep * (1/4); // 16분음표 = 1/4박
-            const durationInSeconds = (60 / currentBpm) * durationInBeats;
-            
+          
+          // 16분음표 기준으로 길이 계산 (4분음표 = 1박)
+          const durationInBeats = sustainStep * (1/4); // 16분음표 = 1/4박
+          const durationInSeconds = (60 / currentBpm) * durationInBeats;
+          
             // 음표 이름에서 실제 음 추출 (예: "synth_C1" -> "C1")
             let note = instrumentName.replace('synth_', '');
             
