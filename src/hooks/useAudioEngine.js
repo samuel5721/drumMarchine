@@ -214,7 +214,19 @@ const useAudioEngine = () => {
             const durationInSeconds = (60 / currentBpm) * durationInBeats;
             
             // 음표 이름에서 실제 음 추출 (예: "bass_C1" -> "C1")
-            const note = instrumentName.replace('bass_', '');
+            let note = instrumentName.replace('bass_', '');
+            
+            // 샵이 적용된 경우 음을 반음 올림
+            if (options.isSharp) {
+              const noteMap = {
+                'C': 'C#', 'D': 'D#', 'E': 'F', 'F': 'F#',
+                'G': 'G#', 'A': 'A#', 'B': 'C'
+              };
+              const noteName = note.charAt(0);
+              const octave = note.slice(1);
+              note = noteMap[noteName] + octave;
+            }
+            
             bassSynth.triggerAttackRelease(note, durationInSeconds);
           } else {
             console.error(`Missing synth for ${instrumentName}`);
@@ -232,7 +244,19 @@ const useAudioEngine = () => {
             const durationInSeconds = (60 / currentBpm) * durationInBeats;
             
             // 음표 이름에서 실제 음 추출 (예: "synth_C1" -> "C1")
-            const note = instrumentName.replace('synth_', '');
+            let note = instrumentName.replace('synth_', '');
+            
+            // 샵이 적용된 경우 음을 반음 올림
+            if (options.isSharp) {
+              const noteMap = {
+                'C': 'C#', 'D': 'D#', 'E': 'F', 'F': 'F#',
+                'G': 'G#', 'A': 'A#', 'B': 'C'
+              };
+              const noteName = note.charAt(0);
+              const octave = note.slice(1);
+              note = noteMap[noteName] + octave;
+            }
+            
             synthSynth.triggerAttackRelease(note, durationInSeconds);
           } else {
             console.error(`Missing synth for ${instrumentName}`);

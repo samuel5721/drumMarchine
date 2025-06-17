@@ -203,7 +203,7 @@ function App() {
   };
 
   // 베이스 음 구간 지정 함수
-  const setBassNoteRange = (instrument, startIdx, endIdx, removeGroupId = null) => {
+  const setBassNoteRange = (instrument, startIdx, endIdx, removeGroupId = null, isAltPressed = false, isCtrlPressed = false) => {
     // 악기 타입 결정
     let instrumentType;
     if (instrumentBassOrder.includes(instrument)) {
@@ -220,7 +220,7 @@ function App() {
     if (removeGroupId) {
       // 해당 groupId 전체 해제
       updatedScoreSet[instrument] = row.map(note =>
-        note.groupId === removeGroupId ? { ...note, on: false, groupId: 0 } : note
+        note.groupId === removeGroupId ? { ...note, on: false, groupId: 0, isSharp: false } : note
       );
     } else {
       // 새로운 groupId 할당
@@ -229,7 +229,7 @@ function App() {
       const maxIdx = Math.max(startIdx, endIdx);
       updatedScoreSet[instrument] = row.map((note, i) =>
         (i >= minIdx && i <= maxIdx)
-          ? { ...note, on: true, groupId: newGroupId }
+          ? { ...note, on: true, groupId: newGroupId, isSharp: isCtrlPressed }
           : note
       );
     }

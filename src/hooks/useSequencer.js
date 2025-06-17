@@ -42,7 +42,8 @@ export default function useSequencer({ score, currentSet, playSound }) {
               }
               playSound(ins, { 
                 currentBpm: bpm.current,
-                sustainStep
+                sustainStep,
+                isSharp: note.isSharp
               });
             }
           }

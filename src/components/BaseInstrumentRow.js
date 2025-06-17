@@ -9,14 +9,17 @@ const BaseInstrumentRow = ({
   setNoteRange = () => {}
 }) => {
   const [isAltPressed, setIsAltPressed] = useState(false);
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
-  // Alt
+  // Alt & Ctrl 키 감지
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Alt') setIsAltPressed(true);
+      if (e.key === 'Control') setIsCtrlPressed(true);
     };
     const handleKeyUp = (e) => {
       if (e.key === 'Alt') setIsAltPressed(false);
+      if (e.key === 'Control') setIsCtrlPressed(false);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -35,7 +38,8 @@ const BaseInstrumentRow = ({
       isDragging: true, 
       startOn: rowScore[i].on, 
       startGroupId: rowScore[i].groupId,
-      isAltPressed 
+      isAltPressed,
+      isCtrlPressed
     });
   };
   const handleMouseEnter = (i) => {
@@ -49,7 +53,7 @@ const BaseInstrumentRow = ({
       if (dragInfo.startOn && dragInfo.startGroupId) {
         setNoteRange(instrumentName, null, null, dragInfo.startGroupId); // 해제용
       } else {
-        setNoteRange(instrumentName, dragInfo.startIdx, i, null, dragInfo.isAltPressed);
+        setNoteRange(instrumentName, dragInfo.startIdx, i, null, dragInfo.isAltPressed, isCtrlPressed);
       }
     }
   };
@@ -107,7 +111,9 @@ const BaseInstrumentRow = ({
                     onMouseDown={() => handleMouseDown(note.idx)}
                     onMouseEnter={() => handleMouseEnter(note.idx)}
                     onMouseUp={() => handleMouseUp(note.idx)}
-                  />
+                  >
+                    {note.isSharp && '#'}
+                  </Styled.NoteBtn>
                 ))}
               </Styled.NoteGroup>
             ) : (
@@ -120,7 +126,9 @@ const BaseInstrumentRow = ({
                   onMouseDown={() => handleMouseDown(note.idx)}
                   onMouseEnter={() => handleMouseEnter(note.idx)}
                   onMouseUp={() => handleMouseUp(note.idx)}
-                />
+                >
+                  {note.isSharp && '#'}
+                </Styled.NoteBtn>
               ))
             )
           );
