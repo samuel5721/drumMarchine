@@ -249,6 +249,12 @@ function App() {
   const [currentPresetIndex, setCurrentPresetIndex] = useState(0);
   const [currentMeasure, setCurrentMeasure] = useState(0);
 
+  // 알파벳을 숫자로 변환하는 함수
+  const alphaToNumber = (char) => {
+    const num = char.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+    return num;
+  };
+
   // 프리셋 import 처리
   const importPreset = (presetData) => {
     try {
@@ -259,7 +265,10 @@ function App() {
         const [instrument, ...measures] = line.trim().split('');
         return {
           instrument: instrument.toLowerCase(),
-          measures: measures.map(Number)
+          measures: measures.map(char => {
+            // 숫자면 그대로, 알파벳이면 변환
+            return /[A-Za-z]/.test(char) ? alphaToNumber(char) : Number(char);
+          })
         };
       });
       console.log('파싱된 프리셋:', parsedPresets);
