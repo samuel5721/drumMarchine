@@ -206,8 +206,7 @@ const useAudioEngine = () => {
           const bassSynth = bassSynths.current[instrumentName];
           if (bassSynth) {
             // 드래그 길이에 따른 음 길이 계산
-            const sustainStep = options.sustainStep || 1;
-            const currentBpm = options.currentBpm || 120;
+            const { sustainStep, currentBpm, isSharp, isOctaveUp } = options;
             
             // 16분음표 기준으로 길이 계산 (4분음표 = 1박)
             const durationInBeats = sustainStep * (1/4); // 16분음표 = 1/4박
@@ -217,7 +216,7 @@ const useAudioEngine = () => {
             let note = instrumentName.replace('bass_', '');
             
             // 샵이 적용된 경우 음을 반음 올림
-            if (options.isSharp) {
+            if (isSharp) {
               const noteMap = {
                 'C': 'C#', 'D': 'D#', 'E': 'F', 'F': 'F#',
                 'G': 'G#', 'A': 'A#', 'B': 'C'
@@ -225,6 +224,12 @@ const useAudioEngine = () => {
               const noteName = note.charAt(0);
               const octave = note.slice(1);
               note = noteMap[noteName] + octave;
+            }
+            
+            // 한 옥타브 올리기
+            if (isOctaveUp) {
+              const freq = Tone.Frequency(note);
+              note = freq.transpose(12).toNote();
             }
             
             bassSynth.triggerAttackRelease(note, durationInSeconds);
@@ -236,8 +241,7 @@ const useAudioEngine = () => {
           const synthSynth = synthSynths.current[instrumentName];
           if (synthSynth) {
             // 드래그 길이에 따른 음 길이 계산
-            const sustainStep = options.sustainStep || 1;
-            const currentBpm = options.currentBpm || 120;
+            const { sustainStep, currentBpm, isSharp, isOctaveUp } = options;
             
             // 16분음표 기준으로 길이 계산 (4분음표 = 1박)
             const durationInBeats = sustainStep * (1/4); // 16분음표 = 1/4박
@@ -247,7 +251,7 @@ const useAudioEngine = () => {
             let note = instrumentName.replace('synth_', '');
             
             // 샵이 적용된 경우 음을 반음 올림
-            if (options.isSharp) {
+            if (isSharp) {
               const noteMap = {
                 'C': 'C#', 'D': 'D#', 'E': 'F', 'F': 'F#',
                 'G': 'G#', 'A': 'A#', 'B': 'C'
@@ -255,6 +259,12 @@ const useAudioEngine = () => {
               const noteName = note.charAt(0);
               const octave = note.slice(1);
               note = noteMap[noteName] + octave;
+            }
+            
+            // 한 옥타브 올리기
+            if (isOctaveUp) {
+              const freq = Tone.Frequency(note);
+              note = freq.transpose(12).toNote();
             }
             
             synthSynth.triggerAttackRelease(note, durationInSeconds);

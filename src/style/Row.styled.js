@@ -40,7 +40,10 @@ export const NoteBtn = styled.button`
   font-size: 12px;
   background: ${props => {
     if (props.$isInDragRange) return "#90caf9";
-    if (props.$isOn) return "black";
+    if (props.$isOn) {
+      if (props.$isOctaveUp) return "#808080";
+      return "black";
+    }
     if (props.$isActive) return "black";
     if (props.$isCurrent || props.$isSelected) return "black";
     if (props.$isBeat) return "#eeeeee";

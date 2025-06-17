@@ -1,5 +1,38 @@
 import React, { useState, useEffect } from "react";
 import * as Styled from "../style/Row.styled";
+import styled from "styled-components";
+
+const NoteButton = styled.button`
+  width: 40px;
+  height: 40px;
+  border: 1px solid #ccc;
+  background-color: ${props => {
+    if (props.$isOn) {
+      if (props.$isOctaveUp) {
+        return '#808080'; // 회색
+      }
+      return props.$isSharp ? '#000' : '#333';
+    }
+    return props.$isInDragRange ? '#444' : '#222';
+  }};
+  color: ${props => props.$isOn ? '#fff' : '#666'};
+  cursor: pointer;
+  transition: all 0.1s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: ${props => props.$isOn ? 'bold' : 'normal'};
+
+  &:hover {
+    background-color: ${props => props.$isOn ? '#444' : '#333'};
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
 
 const BaseInstrumentRow = ({
   instrumentName,
@@ -10,16 +43,19 @@ const BaseInstrumentRow = ({
 }) => {
   const [isAltPressed, setIsAltPressed] = useState(false);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+  const [isShiftPressed, setIsShiftPressed] = useState(false);
 
-  // Alt & Ctrl 키 감지
+  // Alt, Ctrl, Shift 키 감지
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Alt') setIsAltPressed(true);
       if (e.key === 'Control') setIsCtrlPressed(true);
+      if (e.key === 'Shift') setIsShiftPressed(true);
     };
     const handleKeyUp = (e) => {
       if (e.key === 'Alt') setIsAltPressed(false);
       if (e.key === 'Control') setIsCtrlPressed(false);
+      if (e.key === 'Shift') setIsShiftPressed(false);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -39,7 +75,8 @@ const BaseInstrumentRow = ({
       startOn: rowScore[i].on, 
       startGroupId: rowScore[i].groupId,
       isAltPressed,
-      isCtrlPressed
+      isCtrlPressed,
+      isShiftPressed
     });
   };
   const handleMouseEnter = (i) => {
@@ -53,7 +90,7 @@ const BaseInstrumentRow = ({
       if (dragInfo.startOn && dragInfo.startGroupId) {
         setNoteRange(instrumentName, null, null, dragInfo.startGroupId); // 해제용
       } else {
-        setNoteRange(instrumentName, dragInfo.startIdx, i, null, dragInfo.isAltPressed, isCtrlPressed);
+        setNoteRange(instrumentName, dragInfo.startIdx, i, null, dragInfo.isAltPressed, isCtrlPressed, isShiftPressed);
       }
     }
   };
@@ -108,6 +145,7 @@ const BaseInstrumentRow = ({
                     key={note.idx}
                     $isOn={true}
                     $isInDragRange={dragRange && note.idx >= dragRange.min && note.idx <= dragRange.max}
+                    $isOctaveUp={note.isOctaveUp}
                     onMouseDown={() => handleMouseDown(note.idx)}
                     onMouseEnter={() => handleMouseEnter(note.idx)}
                     onMouseUp={() => handleMouseUp(note.idx)}
@@ -123,6 +161,7 @@ const BaseInstrumentRow = ({
                   $isOn={note.on}
                   $isInDragRange={dragRange && note.idx >= dragRange.min && note.idx <= dragRange.max}
                   $isBeat={note.idx % 4 === 0}
+                  $isOctaveUp={note.isOctaveUp}
                   onMouseDown={() => handleMouseDown(note.idx)}
                   onMouseEnter={() => handleMouseEnter(note.idx)}
                   onMouseUp={() => handleMouseUp(note.idx)}

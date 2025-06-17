@@ -43,7 +43,8 @@ export default function useSequencer({ score, currentSet, playSound }) {
               playSound(ins, { 
                 currentBpm: bpm.current,
                 sustainStep,
-                isSharp: note.isSharp
+                isSharp: note.isSharp,
+                isOctaveUp: note.isOctaveUp
               });
             }
           }
