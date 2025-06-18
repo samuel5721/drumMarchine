@@ -21,14 +21,14 @@ export const drumSynthConfigs = {
     options: {
       noise: { type: "white" },
       envelope: { 
-        attack: 0.005, 
-        decay: 0.1, 
-        sustain: 0, 
-        release: 0.1 
+        attack: 0.001, 
+        decay: 0.2, 
+        sustain: 0.1, 
+        release: 0.3 
       }
     },
     playOptions: {
-      duration: "8n"
+      duration: "16n"
     }
   },
 
@@ -80,6 +80,23 @@ export const drumSynthConfigs = {
     playOptions: {
       note: "C3",
       duration: "1n"
+    }
+  },
+
+  // 클랩 (Clap)
+  clab: {
+    type: 'NoiseSynth',
+    options: {
+      noise: { type: "white" },
+      envelope: { 
+        attack: 0.005, 
+        decay: 0.1, 
+        sustain: 0, 
+        release: 0.1 
+      }
+    },
+    playOptions: {
+      duration: "8n"
     }
   },
 

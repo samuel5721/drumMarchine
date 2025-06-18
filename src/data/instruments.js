@@ -6,7 +6,7 @@ export const instrumentTypes = {
 
 export const instrumentDrumOrder = [
   "crash",
-  "ride",
+  "clab",
   "hiHat",
   "highTom",
   "midTom",
