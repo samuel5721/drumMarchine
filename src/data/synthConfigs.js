@@ -144,4 +144,4 @@ export const drumSynthConfigs = {
       duration: "8n"
     }
   }
-}; 
+};

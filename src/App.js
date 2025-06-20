@@ -10,6 +10,7 @@ import {
   instrumentDrumOrder,
   instrumentBassOrder,
   instrumentSynthOrder,
+  instrumentGuitarOrder
 } from "./data/instruments";
 import SimpleInstrumentRow from "./components/SimpleInstrumentRow";
 import BaseInstrumentRow from "./components/BaseInstrumentRow";
@@ -51,6 +52,17 @@ function App() {
         });
       });
       return instrumentScore;
+    }),
+    [instrumentTypes.GUITAR]: Array.from({ length: NOTE_NUM }, () => {
+      const instrumentScore = {};
+      instrumentGuitarOrder.forEach((ins) => {
+        instrumentScore[ins] = Array(NOTE_NUM).fill({
+          on: false,
+          isSharp: false,
+          groupId: 0
+        });
+      });
+      return instrumentScore;
     })
   };
   const score = useRef(initialScore);
@@ -60,12 +72,14 @@ function App() {
   const currentSet = useRef({
     [instrumentTypes.DRUM]: 0,
     [instrumentTypes.BASS]: 0,
-    [instrumentTypes.SYNTH]: 0
+    [instrumentTypes.SYNTH]: 0,
+    [instrumentTypes.GUITAR]: 0
   });
   const [seeingCurrentSet, setSeeingCurrentSet] = useState({
     [instrumentTypes.DRUM]: 0,
     [instrumentTypes.BASS]: 0,
-    [instrumentTypes.SYNTH]: 0
+    [instrumentTypes.SYNTH]: 0,
+    [instrumentTypes.GUITAR]: 0
   });
 
   // 시퀀서 훅
@@ -210,6 +224,8 @@ function App() {
       instrumentType = instrumentTypes.BASS;
     } else if (instrumentSynthOrder.includes(instrument)) {
       instrumentType = instrumentTypes.SYNTH;
+    } else if (instrumentGuitarOrder.includes(instrument)) {
+      instrumentType = instrumentTypes.GUITAR;
     } else {
       console.error('Unknown instrument type:', instrument);
       return;
@@ -241,7 +257,8 @@ function App() {
   const reservedScoreChanges = useRef({
     [instrumentTypes.DRUM]: null,
     [instrumentTypes.BASS]: null,
-    [instrumentTypes.SYNTH]: null
+    [instrumentTypes.SYNTH]: null,
+    [instrumentTypes.GUITAR]: null
   });
 
   // 프리셋 관련 상태
@@ -262,20 +279,81 @@ function App() {
       console.log('프리셋 파일 내용:', lines);
       
       const parsedPresets = lines.map(line => {
-        const [instrument, ...measures] = line.trim().split('');
+        const trimmedLine = line.trim();
+        console.log('처리 중인 라인:', trimmedLine);
+        
+        if (trimmedLine.length === 0) {
+          console.log('빈 라인 건너뛰기');
+          return null;
+        }
+        
+        const instrument = trimmedLine.charAt(0).toLowerCase();
+        const measuresStr = trimmedLine.slice(1); // 첫 번째 문자를 제외한 나머지
+        
+        console.log(`악기: ${instrument}, 마디 문자열: ${measuresStr}`);
+        
+        // 각 문자를 개별적으로 파싱하여 마디별 악보 번호로 변환
+        const measures = measuresStr.split('').map(char => {
+          // 숫자면 그대로, 알파벳이면 변환
+          const result = /[A-Za-z]/.test(char) ? alphaToNumber(char) : Number(char);
+          console.log(`문자 '${char}' -> 숫자 ${result}`);
+          return result;
+        });
+        
+        console.log(`파싱된 ${instrument} 프리셋:`, measures);
+        
         return {
-          instrument: instrument.toLowerCase(),
-          measures: measures.map(char => {
-            // 숫자면 그대로, 알파벳이면 변환
-            return /[A-Za-z]/.test(char) ? alphaToNumber(char) : Number(char);
-          })
+          instrument,
+          measures
         };
-      });
-      console.log('파싱된 프리셋:', parsedPresets);
+      }).filter(preset => preset !== null); // null 값 제거
+      
+      console.log('최종 파싱된 프리셋:', parsedPresets);
       
       setPresetQueue(parsedPresets);
       setCurrentPresetIndex(0);
       setCurrentMeasure(0);
+      
+      // 프리셋 초기화 시 첫 번째 프리셋 즉시 적용
+      if (parsedPresets.length > 0) {
+        const firstPreset = parsedPresets[0];
+        if (firstPreset.measures.length > 0) {
+          const measureValue = firstPreset.measures[0];
+          console.log('초기 마디 값:', measureValue);
+          
+          if (measureValue > 0) {
+            const initialSet = measureValue - 1;
+            if (initialSet >= 0 && initialSet < 10) {
+              let instrumentType;
+              switch (firstPreset.instrument) {
+                case 'q':
+                  instrumentType = instrumentTypes.DRUM;
+                  break;
+                case 'w':
+                  instrumentType = instrumentTypes.BASS;
+                  break;
+                case 'e':
+                  instrumentType = instrumentTypes.SYNTH;
+                  break;
+                case 'r':
+                  instrumentType = instrumentTypes.GUITAR;
+                  break;
+              }
+              
+              if (instrumentType) {
+                currentSet.current[instrumentType] = initialSet;
+                console.log(`초기 ${instrumentType} 악보 설정:`, initialSet + 1);
+                // UI 업데이트
+                setSeeingCurrentSet({ ...currentSet.current });
+              }
+            } else {
+              console.log(`초기 악보 번호가 유효하지 않음: ${initialSet + 1}`);
+            }
+          } else {
+            console.log('초기 악보 변경 없음 (값이 0 또는 음수)');
+          }
+        }
+      }
     } catch (error) {
       console.error('Error parsing preset:', error);
       alert('프리셋 파일 형식이 올바르지 않습니다.');
@@ -315,32 +393,48 @@ function App() {
         
         if (currentPreset) {
           if (currentMeasure < currentPreset.measures.length) {
-            const newSet = currentPreset.measures[currentMeasure] - 1;
-            console.log('설정할 악보 번호:', newSet + 1);
+            const measureValue = currentPreset.measures[currentMeasure];
+            console.log('현재 마디 값:', measureValue);
             
-            if (newSet >= 0) {
-              let instrumentType;
-              switch (currentPreset.instrument) {
-                case 'q':
-                  instrumentType = instrumentTypes.DRUM;
-                  break;
-                case 'w':
-                  instrumentType = instrumentTypes.BASS;
-                  break;
-                case 'e':
-                  instrumentType = instrumentTypes.SYNTH;
-                  break;
-              }
+            // 악보 번호가 0이 아닌 경우에만 변경 (0은 악보 변경 없음을 의미)
+            if (measureValue > 0) {
+              const newSet = measureValue - 1;
+              console.log('설정할 악보 번호:', newSet + 1);
               
-              if (instrumentType) {
-                currentSet.current[instrumentType] = newSet;
-                console.log(`${instrumentType} 악보 변경:`, newSet + 1);
-                // 프리셋 적용 시 해당 악기에 포커스
-                setFocusedInstrumentType(instrumentType);
+              if (newSet >= 0 && newSet < 10) { // 악보 번호 범위 체크 (0-9)
+                let instrumentType;
+                switch (currentPreset.instrument) {
+                  case 'q':
+                    instrumentType = instrumentTypes.DRUM;
+                    break;
+                  case 'w':
+                    instrumentType = instrumentTypes.BASS;
+                    break;
+                  case 'e':
+                    instrumentType = instrumentTypes.SYNTH;
+                    break;
+                  case 'r':
+                    instrumentType = instrumentTypes.GUITAR;
+                    break;
+                }
+                
+                if (instrumentType) {
+                  currentSet.current[instrumentType] = newSet;
+                  console.log(`${instrumentType} 악보 변경:`, newSet + 1);
+                  // 프리셋 적용 시 해당 악기에 포커스
+                  setFocusedInstrumentType(instrumentType);
+                }
+              } else {
+                console.log(`유효하지 않은 악보 번호: ${newSet + 1}`);
               }
+            } else {
+              console.log('악보 변경 없음 (값이 0 또는 음수)');
             }
+          } else {
+            console.log(`마디 범위를 벗어남: ${currentMeasure} >= ${currentPreset.measures.length}`);
           }
         }
+        
         // 다음 프리셋으로 이동
         const nextIndex = (currentPresetIndex + 1) % presetQueue.length;
         console.log('다음 프리셋 인덱스로 변경:', nextIndex);
@@ -348,7 +442,11 @@ function App() {
 
         // 마지막 프리셋이면 마디 증가
         if (nextIndex === 0) {
-          setCurrentMeasure(prev => prev + 1);
+          setCurrentMeasure(prev => {
+            const nextMeasure = prev + 1;
+            console.log('마디 증가:', nextMeasure);
+            return nextMeasure;
+          });
         }
       }
 
@@ -366,6 +464,8 @@ function App() {
         setFocusedInstrumentType(instrumentTypes.BASS);
       } else if (e.key === 'e') {
         setFocusedInstrumentType(instrumentTypes.SYNTH);
+      } else if (e.key === 'r') {
+        setFocusedInstrumentType(instrumentTypes.GUITAR);
       } else if (e.key === 'Escape') {
         setFocusedInstrumentType(null);
       }
@@ -468,6 +568,47 @@ function App() {
               currentSet={currentSet.current[instrumentTypes.DRUM]}
             />
           </LineWrapper>
+
+          <LineWrapper 
+            onClick={() => setFocusedInstrumentType(instrumentTypes.SYNTH)}
+            isFocused={focusedInstrumentType === instrumentTypes.SYNTH}
+          >
+            <Controls
+              bpmInput={bpmInput}
+              handleBpmChange={handleBpmChange}
+              volume={volumes[instrumentTypes.SYNTH]}
+              changeVolume={setVolume}
+              initializeAudio={initializeAudio}
+              isPlaying={isPlaying}
+              start={startSequencer}
+              stop={stopSequencer}
+              clearScore={clearScore}
+              instrumentType={instrumentTypes.SYNTH}
+            />
+            {instrumentSynthOrder.map((ins) => (
+              <BaseInstrumentRow
+                key={ins}
+                instrumentName={ins}
+                rowScore={seeingScore[instrumentTypes.SYNTH][seeingCurrentSet[instrumentTypes.SYNTH]][ins]}
+                dragInfo={dragInfo}
+                setDragInfo={setDragInfo}
+                setNoteRange={setBassNoteRange}
+              />
+            ))}
+            <br />
+            <SequenceRow
+              sequanceName={instrumentTypes.SYNTH}
+              seeingCurrentSet={seeingCurrentSet[instrumentTypes.SYNTH]}
+              currentNote={currentNote}
+              isPlaying={isPlaying}
+              setSeeingCurrentSet={(newSet) => {
+                currentSet.current[instrumentTypes.SYNTH] = newSet;
+                setSeeingCurrentSet({ ...currentSet.current });
+              }}
+              score={score.current[instrumentTypes.SYNTH]}
+              currentSet={currentSet.current[instrumentTypes.SYNTH]}
+            />
+          </LineWrapper>
         </LeftSide>
         <RightSide>
           <LineWrapper 
@@ -510,27 +651,28 @@ function App() {
               currentSet={currentSet.current[instrumentTypes.BASS]}
             />
           </LineWrapper>
+
           <LineWrapper 
-            onClick={() => setFocusedInstrumentType(instrumentTypes.SYNTH)}
-            isFocused={focusedInstrumentType === instrumentTypes.SYNTH}
+            onClick={() => setFocusedInstrumentType(instrumentTypes.GUITAR)}
+            isFocused={focusedInstrumentType === instrumentTypes.GUITAR}
           >
             <Controls
               bpmInput={bpmInput}
               handleBpmChange={handleBpmChange}
-              volume={volumes[instrumentTypes.SYNTH]}
+              volume={volumes[instrumentTypes.GUITAR]}
               changeVolume={setVolume}
               initializeAudio={initializeAudio}
               isPlaying={isPlaying}
               start={startSequencer}
               stop={stopSequencer}
               clearScore={clearScore}
-              instrumentType={instrumentTypes.SYNTH}
+              instrumentType={instrumentTypes.GUITAR}
             />
-            {instrumentSynthOrder.map((ins) => (
+            {instrumentGuitarOrder.map((ins) => (
               <BaseInstrumentRow
                 key={ins}
                 instrumentName={ins}
-                rowScore={seeingScore[instrumentTypes.SYNTH][seeingCurrentSet[instrumentTypes.SYNTH]][ins]}
+                rowScore={seeingScore[instrumentTypes.GUITAR][seeingCurrentSet[instrumentTypes.GUITAR]][ins]}
                 dragInfo={dragInfo}
                 setDragInfo={setDragInfo}
                 setNoteRange={setBassNoteRange}
@@ -538,16 +680,16 @@ function App() {
             ))}
             <br />
             <SequenceRow
-              sequanceName={instrumentTypes.SYNTH}
-              seeingCurrentSet={seeingCurrentSet[instrumentTypes.SYNTH]}
+              sequanceName={instrumentTypes.GUITAR}
+              seeingCurrentSet={seeingCurrentSet[instrumentTypes.GUITAR]}
               currentNote={currentNote}
               isPlaying={isPlaying}
               setSeeingCurrentSet={(newSet) => {
-                currentSet.current[instrumentTypes.SYNTH] = newSet;
+                currentSet.current[instrumentTypes.GUITAR] = newSet;
                 setSeeingCurrentSet({ ...currentSet.current });
               }}
-              score={score.current[instrumentTypes.SYNTH]}
-              currentSet={currentSet.current[instrumentTypes.SYNTH]}
+              score={score.current[instrumentTypes.GUITAR]}
+              currentSet={currentSet.current[instrumentTypes.GUITAR]}
             />
           </LineWrapper>
         </RightSide>

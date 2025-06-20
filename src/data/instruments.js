@@ -1,7 +1,8 @@
 export const instrumentTypes = {
   DRUM: "drum",
   BASS: "bass",
-  SYNTH: "synth"
+  SYNTH: "synth",
+  GUITAR: "guitar"
 };
 
 export const instrumentDrumOrder = [
@@ -37,4 +38,16 @@ export const instrumentSynthOrder = [
   "synth_E2",
   "synth_D2",
   "synth_C2",
+];
+
+// 일렉트릭 기타 음계 순서 수정
+export const instrumentGuitarOrder = [
+  'guitar_C1',
+  'guitar_D1',
+  'guitar_E1',
+  'guitar_F1',
+  'guitar_G1',
+  'guitar_A1',
+  'guitar_B1',
+  'guitar_C2'
 ];

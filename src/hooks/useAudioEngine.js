@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { instrumentTypes, instrumentDrumOrder, instrumentBassOrder, instrumentSynthOrder } from '../data/instruments';
-import { drumSynthConfigs } from '../data/synthConfigs';
+import { instrumentTypes, instrumentDrumOrder, instrumentBassOrder, instrumentSynthOrder, instrumentGuitarOrder } from '../data/instruments';
+import { drumSynthConfigs, guitarSynthConfigs } from '../data/synthConfigs';
 const Tone = require('tone');
 
 const useAudioEngine = () => {
@@ -9,14 +9,17 @@ const useAudioEngine = () => {
   const drumSynths = useRef({});
   const bassSynths = useRef({});
   const synthSynths = useRef({});
+  const guitarSynths = useRef({});
   const drumGains = useRef({});
   const bassGains = useRef({});
   const synthGains = useRef({});
+  const guitarGains = useRef({});
   const masterGain = useRef(null);
   const volumes = useRef({
     [instrumentTypes.DRUM]: 0.5,
     [instrumentTypes.BASS]: 0.5,
     [instrumentTypes.SYNTH]: 0.5,
+    [instrumentTypes.GUITAR]: 0.5,
     master: 0.5
   });
 
@@ -43,8 +46,8 @@ const useAudioEngine = () => {
           },
           envelope: {
             attack: 0.01,
-            decay: 0.2,
-            sustain: 0.5,
+            decay: 0.1,
+            sustain: 0.2,
             release: 1
           }
         }).connect(gainNode);
@@ -62,8 +65,8 @@ const useAudioEngine = () => {
           },
           envelope: {
             attack: 0.01,
-            decay: 0.2,
-            sustain: 0.5,
+            decay: 0.1,
+            sustain: 0.1,
             release: 1
           }
         }).connect(gainNode);
@@ -92,6 +95,31 @@ const useAudioEngine = () => {
     });
     
     console.log('Final drum synths:', drumSynths.current);
+
+    // 일렉트릭 기타 신디사이저 초기화
+    guitarSynths.current = {};
+    guitarGains.current = {};
+    instrumentGuitarOrder.forEach(note => {
+      const gainNode = new Tone.Gain(1).connect(masterGain.current);
+      guitarGains.current[note] = gainNode;
+      
+      // 기본 신디사이저 생성
+      const synth = new Tone.Synth({
+        oscillator: {
+          type: "sawtooth",
+          volume: 0
+        },
+        envelope: {
+          attack: 0.005,
+          decay: 0.2,
+          sustain: 0.3,
+          release: 1
+        }
+      }).connect(gainNode);
+      
+      guitarSynths.current[note] = synth;
+    });
+
     setIsFetched(true);
       return true;
     } catch (error) {
@@ -143,6 +171,12 @@ const useAudioEngine = () => {
             gain.gain.value = 0.5 * volumes.current[instrumentTypes.SYNTH] * value;
           }
         });
+      } else if (type === instrumentTypes.GUITAR) {
+        Object.values(guitarGains.current).forEach(gain => {
+          if (gain) {
+            gain.gain.value = 2 * value * volumes.current.master;  // 게인 값 증가
+          }
+        });
       }
     }
   }, []);
@@ -159,7 +193,7 @@ const useAudioEngine = () => {
         }
       }
 
-      if (!drumSynths.current || !bassSynths.current || !synthSynths.current) {
+      if (!drumSynths.current || !bassSynths.current || !synthSynths.current || !guitarSynths.current) {
         console.error('Synth is not properly initialized');
         return;
       }
@@ -172,6 +206,8 @@ const useAudioEngine = () => {
         instrumentType = instrumentTypes.BASS;
       } else if (instrumentSynthOrder.includes(instrumentName)) {
         instrumentType = instrumentTypes.SYNTH;
+      } else if (instrumentGuitarOrder.includes(instrumentName)) {
+        instrumentType = instrumentTypes.GUITAR;
       }
 
       if (!instrumentType) {
@@ -267,6 +303,32 @@ const useAudioEngine = () => {
             synthSynth.triggerAttackRelease(note, durationInSeconds);
           } else {
             console.error(`Missing synth for ${instrumentName}`);
+          }
+        } else if (instrumentType === instrumentTypes.GUITAR) {
+          const guitarSynth = guitarSynths.current[instrumentName];
+          if (guitarSynth) {
+            const { sustainStep, currentBpm, isSharp, isOctaveUp } = options;
+            const durationInBeats = sustainStep * (1/4);
+            const durationInSeconds = (60 / currentBpm) * durationInBeats;
+            
+            let note = instrumentName.replace('guitar_', '');
+            
+            if (isSharp) {
+              const noteMap = {
+                'C': 'C#', 'D': 'D#', 'E': 'F', 'F': 'F#',
+                'G': 'G#', 'A': 'A#', 'B': 'C'
+              };
+              const noteName = note.charAt(0);
+              const octave = note.slice(1);
+              note = noteMap[noteName] + octave;
+            }
+            
+            if (isOctaveUp) {
+              const freq = Tone.Frequency(note);
+              note = freq.transpose(12).toNote();
+            }
+            
+            guitarSynth.triggerAttackRelease(note, durationInSeconds);
           }
         }
       } catch (error) {
